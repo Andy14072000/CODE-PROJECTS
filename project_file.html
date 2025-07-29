@@ -1,0 +1,5028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"> -->
+	<!-- <link rel="stylesheet" href="D:\DVLO_Project\new_bootstrap_code\bootstrap-5.3.6-dist\css\bootstrap.min.css"> -->
+	
+	<table style="width: 100%;" class="table table-bordered">
+		<tr>
+			
+			<!-- <td style="text-align:Center;background:#428BCA;font-weight:bold;color: #E6F0FA;font-size: 35px; border-radius: 15px;">DVLO Score Computation App - CV</td>  -->
+			<!-- <td id="t1" style="vertical-align:top; text-align:Center;background:#99b3ff;font-weight:bold;color: black;font-size: 37px;font-family:'Fantasy';background-image: radial-gradient(100% 100% at 100% 0, #99b3ff 0, #ff99ff 100%); border-radius: 15px; ">DVLO Score Computation App - CV</td> -->
+			<td id="t1" style="vertical-align:top; text-align:Center;background:#b8b9ae;font-weight:bold;color: rgb(253, 253, 253);font-size: 37px;font-family:'sans-serif';background-image: radial-gradient(100% 100% at 100% 0, #47a7fa 0, #006fa7 100%); border-radius: 10px;text-shadow: 2px 4px 8px rgba(97, 74, 74, 0.567); ">DVLO Score Computation App - CV</td>
+		</tr>
+	</table>
+	
+	
+	<style>
+		.rectangle1 {
+		  height: 20px;
+		  width: 30px;
+		  background-color: #fcdc95;
+		}
+		.rectangle2 {
+		  height: 20px;
+		  width: 30px;
+		  background-color: #b3ffff;
+		}
+	</style>
+	<style>
+		body {font-family: Arial; font-size: 12px;}
+
+		/* Style the tab */
+		.tab {
+		  overflow: hidden;
+		  border: 1px solid #ccc;
+		  background-color: #428BCA;
+		  font-size: 12px;
+		}
+
+		/* Style the buttons inside the tab */
+		.tab button {
+		  background-color: #428BCA;
+		  float: left;
+		  border: none;
+		  outline: none;
+		  cursor: pointer;
+		  padding: 14px 16px;
+		  transition: 0.3s;
+		  font-size: 17px;
+		}
+
+		/* Change background color of buttons on hover */
+		.tab button:hover {
+		  background-color: #ddd;
+		}
+
+		/* Create an active/current tablink class */
+		.tab button.active {
+		  background-color: #ccc;
+		}
+
+		/* Style the tab content */
+		.tabcontent {
+		  display: none;
+		  padding: 6px 12px;
+		  border: 1px solid #2F539B;
+		  border-top: none;
+		}
+		#Page2 {
+			border: 2px solid black;  /* Adds a black border around the div */
+			padding: 10px;            /* Adds space inside the border */
+			margin: 10px;             /* Adds space outside the div */
+			border-radius: 5px;       /* Optional: Adds rounded corners */
+			background-color: silver;
+		}
+	</style>
+
+
+<script type="text/vbscript" language="VBScript">
+
+	Dim gVMU             'Main Application
+    Dim gDispVisApp      'gDispVisApp will be set in StartVisView_OnClick
+
+    Dim gDocs  		'document list
+    Dim gDoc   		'specific document
+    Dim gViews 		'view list
+    Dim gView  		'specific view
+	Dim snapshotmnr
+	Dim assemblyNo	'assembly Number
+	Dim asemblyNode	'assembly Node
+	Dim gNodes		'Nodes in document	
+	Dim gAssemblyNodes		'all assembly Nodes in document	
+	Dim PartType	'parts to consider
+	Dim gNodeList1	'nodelist1
+	Dim gNodeList2	'nodeList2
+	Dim gMeasureManager
+	dim isAssemblyPresent
+	Dim gClearanceManager
+	Dim runcount
+	Dim rootNodeName
+	Dim Main_root_node
+	Dim root_node_child
+	Dim root_node_print_name
+	
+	Dim unapplicable_sub_list
+	Dim unique_applicable_sub_list
+	
+	Dim unapplicable_sub_dict
+	Dim applicable_sub_dict
+	
+	'Set unique_applicable_sub_list = CreateObject("System.Collections.ArrayList")
+	'Set unapplicable_sub_list = CreateObject("System.Collections.ArrayList")
+	
+	Set applicable_sub_dict = CreateObject("Scripting.Dictionary")
+	Set unapplicable_sub_dict = CreateObject("Scripting.Dictionary")
+	
+
+	
+<!-- ------------------------------------------------------------------------------------------------------------------------------	 -->	
+	sub connect_Vis()			'Connect TC Vis Automation API 
+		Set gVMU = CreateObject("VFFrame.Application")
+    Set gDispVisApp = gVMU.VisAppAutomation()
+		Set gDocs = gDispVisApp.Documents
+		Set gDoc1 = gDocs.ActiveDocument
+		Set gViews = gDoc1.ViewList
+		Set gView = gDocs.ActiveView
+		gView.AllNodesOff
+		
+		set Main_root_node = gView.RootNode
+		
+		root_node_print_name = Main_root_node.PrintableName
+		
+		set root_node_child = Main_root_node.Children
+		
+		<!-- rootNodeName = split(gView.RootNode.PrintableName,"/")(0) -->
+		rootNodeName = "580525603406"
+		set gMeasureManager = gView.MeasurementManager		'Measurment Manager
+		
+		set snapshotmnr = gView.SnapShotManager
+		
+		gMeasureManager.DeleteAllMeasurements
+		
+		if instr(gDispVisApp.Name, "Professional") then
+			msgbox "You are currently using " &gDispVisApp.Name &" application." &vbCrLf &"Some functionalities of DVLO application will only work on Vis Mockup. Please open Vis Mockup..!",1,"DVLO Clearance Check"
+		end if
+		
+		
+		runcount = 0
+		   
+	end sub
+
+
+  	sub check_for_assemblyNo()		'Check whether entered assemblt is pesent in loaded PV JT
+		connect_Vis()
+		'document.getElementById("assem_Descrptin").innerText = ""
+		dim assemblyName
+		dim Description
+		dim moduleName
+		dim RootNodeChild
+		dim acc, NodeProperties
+		dim AssembltinJT
+		Dim Objexcel, ObjWorkbook, ObjDriverSheet, Fieldvalue, Rowcount	, ColumnCount
+		isAssemblyPresent = False
+		Dim get_flag
+		
+		
+		
+		Set sel = document.getElementById("Assembly_no")
+		assemblyText = sel.options(sel.selectedIndex).text
+		'MsgBox assemblyText
+		
+		Call gView.Find(0, 1, "Name",2,"*", "", outNode)
+		set gAssemblyNodes = outNode
+		
+		call clearTable()
+		
+		set Objexcel = Createobject("Excel.Application")
+		Set ObjWorkbook = ObjExcel.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\RuleBook_CV_vf.xlsx")	'address of rule file
+		
+		Set ObjDriverSheet = ObjWorkbook.Worksheets(1)	
+		ColumnCount = ObjDriverSheet.Usedrange.Columns.Count
+		Rowcount = ObjDriverSheet.Usedrange.Rows.Count
+		
+		call set_global_var
+		
+		For ik = 2 To Rowcount
+									
+			If Instr(Objdriversheet.Cells(ik,22),assemblyText) then						'check if entered module is in Module-1 Column in excel	
+				
+				module1 = getModuleName(Objdriversheet.Cells(ik,10))									
+				'msgbox module1
+				
+				module2 = getModuleName(Objdriversheet.Cells(ik,11))
+				'msgbox module1
+				
+				rl_id = Objdriversheet.Cells(ik,1)
+				
+				
+				complete_str = rl_id & "`" & module1 & "`" & module2
+				
+				tooltip = Objdriversheet.Cells(ik,10) &" - " &Objdriversheet.Cells(ik,11)
+				'msgbox tooltip
+				if not (Trim(Objdriversheet.Cells(ik,19))="") then 
+					Clearance = Objdriversheet.Cells(ik,19)
+				else
+					Clearance = Objdriversheet.Cells(ik,20)
+				end if 
+				'msgbox module1 &"-" &module2
+				Exec_type = Trim(Objdriversheet.Cells(ik,21))
+				
+				desc1 = Objdriversheet.Cells(ik, 8)   ' Column H
+                desc2 = Objdriversheet.Cells(ik, 9)   ' Column I
+                AggregateDisplay = desc1 & " & " & desc2
+				
+				data1 =  Objdriversheet.Cells(ik, 12)
+				data2 =  Objdriversheet.Cells(ik, 13)
+				groupDesign = data1 & " - " & data2
+				
+				get_flag = checkforModule(complete_str)
+				
+				
+				
+				if (get_flag) Then
+				
+					If Exec_type = "Automatic" Then
+						call insertRule(Objdriversheet.Cells(ik,1),module1,module2,Clearance, tooltip, Exec_type, AggregateDisplay, groupDesign)
+					ElseIf Exec_type = "Manual" Then
+						call insertRule_manual(Objdriversheet.Cells(ik,1),module1,module2,Clearance, tooltip, Exec_type, AggregateDisplay, groupDesign)
+						'call insertRule(Objdriversheet.Cells(ik,1),module1,module2,Clearance, tooltip,Exec_type)
+					end If
+				
+				End if
+				
+				<!-- If Exec_type = "Automatic" Then -->
+					<!-- call insertRule(Objdriversheet.Cells(ik,1),module1,module2,Clearance, tooltip, Exec_type, AggregateDisplay, groupDesign) -->
+				<!-- ElseIf Exec_type = "Manual" Then -->
+					<!-- call insertRule_manual(Objdriversheet.Cells(ik,1),module1,module2,Clearance, tooltip, Exec_type, AggregateDisplay, groupDesign) -->
+					<!-- 'call insertRule(Objdriversheet.Cells(ik,1),module1,module2,Clearance, tooltip,Exec_type) -->
+				<!-- end If -->
+
+			end If
+		Next
+		objExcel.Application.Quit
+		'call addFooterButton()
+		
+	end sub
+	
+	Function checkforModule(modules)								'check for submodule assembly availability in PV JT
+	
+		Dim	ruleId, module1, module2, subModule,value1,ent_sub_module
+		dim abc
+		
+		is_flag = False
+
+		ruleId = Split(modules,"`")(0)
+		ent_sub_module = Split(modules,"`")(2)
+		abc = "ckb-"&ruleId
+		
+		
+			module2 = getModuleName(Split(modules,"`")(2))						'spliting logic to get submodule address
+			module1 = getModuleName(Split(modules,"`")(1))
+			isAssemblyPresent_mod_1 = False
+			isAssemblyPresent_mod_2 = False
+			
+			one_assm_node = False
+			two_assm_node = False
+			
+			
+			Dim pt_flag1
+			Dim pt_flag2
+			
+			Dim Ass_comp_part_node_one
+			Dim Ass_comp_part_node_two
+			
+			Dim comp_part_node_one
+			Dim comp_part_node_two
+			
+			Dim b1
+			Dim n_X
+			Dim n_Y
+			Dim n_Z
+			
+			set Ass_comp_part_node_one = gView.CreateNodeList
+			set Ass_comp_part_node_two = gView.CreateNodeList
+			set comp_part_node_one = gView.CreateNodeList
+			set comp_part_node_two = gView.CreateNodeList
+
+			set gNodes = gAssemblyNodes
+			'msgbox module
+			for kk=0 to (gNodes.NumNodes-1)
+				if Instr(gNodes.Node(kk).PrintableName,Trim(module2)) AND Instr(gNodes.Node(kk).PrintableName,"-geom") = 0 Then			
+						
+					isAssemblyPresent_mod_2 = True	
+					gNodes.Node(kk).Selected = True
+				
+					Call gView.Find(3, 2, "Name",2,"*", "", get_mod_parts_two)
+					
+					'Call gView.FindInList(gNodes.Node(kk),2,"Name", 2, "*", "", get_mod_parts_two)
+					
+					
+					for w = 0 to (get_mod_parts_two.NumNodes-1)
+						
+						Ass_comp_part_node_two.appendNode get_mod_parts_two.Node(w)
+						
+					next
+										
+					
+				End if		
+				if Instr(gNodes.Node(kk).PrintableName,Trim(module1)) AND Instr(gNodes.Node(kk).PrintableName,"-geom") = 0 Then
+
+					gNodes.Node(kk).Selected = True
+					
+					Call gView.Find(3, 2, "Name",2,"*", "", get_mod_parts_one)
+					
+					'Call gView.FindInList(gNodes.Node(kk),2,"Name", 2, "*", "", get_mod_parts_one)
+					
+					for w = 0 to (get_mod_parts_one.NumNodes-1)
+						
+						Ass_comp_part_node_one.appendNode get_mod_parts_one.Node(w)
+						
+					next
+					
+					'msgbox ruleId &"---"&get_mod_parts.NumNodes
+					
+					isAssemblyPresent_mod_1 = True	
+					
+					'flag = "md1"
+					
+					'pt_flag2 = Check_for_parts(ruleId,module1,flag)
+				
+				end if
+			Next
+			
+			'msgbox Ass_comp_part_node_one.NumNodes
+			'msgbox Ass_comp_part_node_two.NumNodes
+			
+			Call gView.FindInList(Ass_comp_part_node_one,0,"Name", 2, "*", "", list_one)
+			
+			'msgbox list_one.NumNodes
+			
+			for q = 0 to (list_one.NumNodes-1)
+				
+				if (list_one.Node(q).IsPart) AND (list_one.Node(q).isLoaded) AND Instr(list_one.Node(q).PrintableName,"-geom") = 0 then
+						
+					b1 = list_one.Node(q).BBox
+					n_X = b1(0) + b1(3)
+					n_Y = b1(1) + b1(4)
+					n_Z = b1(2) + b1(5)
+					
+					
+					if Not(n_X = 0) AND Not(n_Y = 0) AND Not(n_Z = 0) then
+					
+						'msgbox out_second_ChildNodeList.Node(q).IsPart & "-" &out_second_ChildNodeList.Node(q).isLoaded & "-" &out_second_ChildNodeList.Node(q).PrintableName
+					
+						'if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+					
+							comp_part_node_one.appendNode list_one.Node(q)
+						
+						'end if
+					
+					end if
+				
+				end if
+				
+			next
+			
+			Call gView.FindInList(Ass_comp_part_node_two,0,"Name", 2, "*", "", list_two)
+			
+			'msgbox list_one.NumNodes &"--"& list_two.NumNodes
+			
+			for q = 0 to (list_two.NumNodes-1)
+				
+				if (list_two.Node(q).IsPart) AND (list_two.Node(q).isLoaded) AND Instr(list_two.Node(q).PrintableName,"-geom") = 0 then
+						
+					b1 = list_two.Node(q).BBox
+					n_X = b1(0) + b1(3)
+					n_Y = b1(1) + b1(4)
+					n_Z = b1(2) + b1(5)
+					
+					
+					if Not(n_X = 0) AND Not(n_Y = 0) AND Not(n_Z = 0) then
+					
+						'msgbox out_second_ChildNodeList.Node(q).IsPart & "-" &out_second_ChildNodeList.Node(q).isLoaded & "-" &out_second_ChildNodeList.Node(q).PrintableName
+					
+						'if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+					
+							comp_part_node_two.appendNode list_two.Node(q)
+						
+						'end if
+					
+					end if
+				
+				end if
+				
+			next
+			
+			'msgbox comp_part_node_one.NumNodes &"--"& comp_part_node_two.NumNodes
+			'msgbox comp_part_node_two.NumNodes
+			
+			if Not(comp_part_node_one.NumNodes = 0) then
+				
+				one_assm_node = True
+			
+			end if
+			
+			if Not(comp_part_node_two.NumNodes = 0) then
+			
+				two_assm_node = True
+			
+			end if
+				
+			'if (isAssemblyPresent_mod_2) AND (isAssemblyPresent_mod_1) AND (pt_flag1) AND (pt_flag2) Then
+			if (isAssemblyPresent_mod_2) AND (isAssemblyPresent_mod_1) AND (one_assm_node) AND (two_assm_node) Then
+				'msgbox ent_sub_module & " Submodule is not present in this VC"
+				'call findBtn(Split(modules,"`")(0), 1, "Fail")
+				'call findBtn(ruleId, 1, "Fail")
+				
+				is_flag = True
+				
+				
+				checkforModule = is_flag
+				
+				
+			end if
+		<!-- else -->
+			<!-- call findBtn(Split(modules,"`")(0),1)	 -->
+		<!-- end if -->
+	end Function
+	
+<!-- ------------------------------------------------------------------------------------------------------------------------------  -->
+	function Check_for_parts(rule_num,sub_mod_2,flag)
+	
+	
+		Dim Objexcel, ObjWorkbook, ObjDriverSheet, Fieldvalue, Rowcount	, ColumnCount
+		Dim module_found
+		Dim all_parts_under_module
+		
+		part_found_flag = False
+		Dim part_flag 
+		
+		
+	
+		gView.DeSelectAllNodes
+		
+		Call gView.Find(0, 1, "Name",2,"*", "", outNode)
+		set gAssemblyNodes = outNode
+		
+		set gNodes = gAssemblyNodes
+		
+		Module_number = sub_mod_2
+		
+		set Objexcel = Createobject("Excel.Application")
+		Set ObjWorkbook = ObjExcel.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\RuleBook_CV_vf.xlsx")
+		
+		Set ObjDriverSheet = ObjWorkbook.Worksheets(1)	
+		ColumnCount = ObjDriverSheet.Usedrange.Columns.Count
+		Rowcount = ObjDriverSheet.Usedrange.Rows.Count
+		
+		For ik = 2 To Rowcount
+									
+			If Instr(Objdriversheet.Cells(ik,1),rule_num) then
+				
+				if flag = "md1" then
+					part_two_list = Trim(Objdriversheet.Cells(ik,15))
+				else
+					part_two_list = Trim(Objdriversheet.Cells(ik,16))
+				end if
+				
+				if Not (part_two_list = "") then
+					
+					Part_list = Split(part_two_list, ":")
+					
+					for kk=0 to (gNodes.NumNodes-1)
+					
+						if Instr(gNodes.Node(kk).PrintableName,Module_number) Then
+						
+							set module_found = gNodes.Node(kk)
+							
+							if Instr(module_found.PrintableName,"-geom") = 0 then
+								
+								gNodes.Node(kk).Selected = True
+								
+								Call gView.Find(3, 2, "Name",2,"*", "", All_node_list_per_module)
+								
+								set all_parts_under_module = All_node_list_per_module
+								
+								'msgbox all_parts_under_module.NumNodes
+								
+								for sngl_part=0 to UBound(Part_list)
+								
+									'msgbox Part_list(sngl_part)
+								
+									for prt_list=0 to (all_parts_under_module.NumNodes-1)
+									
+										if Instr(all_parts_under_module.Node(prt_list).PrintableName,Part_list(sngl_part)) then
+										
+											'msgbox Part_list(sngl_part) & " " & "Found"
+										
+											part_found_flag = True
+											
+											Exit for
+											
+										End if
+									
+									Next
+								
+								Next
+								
+							End if
+						
+						End if
+						
+					Next
+					
+				else
+					
+					part_found_flag = True
+					
+				End if
+			
+			End If
+			
+		Next
+		
+		objExcel.Application.Quit
+		
+		if Not (part_found_flag) then
+			
+			part_flag = False
+			'call find_part_btn(rule_num, 1, "Fail")
+			Check_for_parts = part_flag
+			
+		else
+			
+			part_flag = True
+			Check_for_parts = part_flag
+			
+			
+		end if
+	
+	end function
+<!-- ------------------------------------------------------------------------------------------------------------------------------  -->
+	
+	
+
+
+<!-- ------------------------------------------------------------------------------------------------------------------------------  -->
+	
+	function getModuleName(AsemblyName)
+		'msgbox "Hi"
+		dim moduleName,acc
+		'msgbox AsemblyName
+		for io =1 to Len(AsemblyName)
+			acc = Mid(AsemblyName,io,1)
+			
+			if not Isnumeric(acc) then
+				moduleName = Mid(AsemblyName,io,5)				
+				Exit For
+				'msgbox moduleName
+			end if
+		Next
+		getModuleName = moduleName
+	end function
+	
+<!-- ------------------------------------------------------------------------------------------------------------------------------  -->
+	sub calculateDist(modules)
+	
+		'MsgBox root_node_print_name
+		Connect_Vis()		
+		
+		Dim lstFirstNode
+		Dim lstSecondNode
+		dim RClearance
+		Dim Distance  	'distance value
+		Dim firstPrt , lstFirstPrt
+		Dim secondPrt, lstSecondPrt
+		Dim first_prt_module, second_prt_module
+		Dim status
+		Dim tempDist	
+		Dim	module, subModule
+		Dim description
+		Dim fScore
+		Dim assmeblyNodeMeasure, mixModule
+		Dim nodelist1, nodelist2
+		Dim Execution_Type
+		Dim i
+		Dim RequiredClr
+		Dim all_node_in_view
+		Dim prt_one_found
+		Dim prt_two_found
+		Dim prt_one_found_child
+		Dim prt_two_found_child
+		Dim prt_two_ass_node_child
+		'Dim Distance
+		Dim Measurement
+		Dim module_one_sub_list_All
+		Dim module_two_sub_list_All
+		'Dim single_snap
+		
+		Dim b1
+		Dim n_X
+		Dim n_Y
+		Dim n_Z
+		
+		
+		Dim assmebly_one_NodeMeasure
+		Dim assmebly_two_NodeMeasure
+		
+		assmebly_one_NodeMeasure = false
+		assmebly_two_NodeMeasure = false
+		
+		set gNodes = gAssemblyNodes
+	
+		'msgbox root_node_child.NumNodes
+		
+		i = 0
+		
+		status = "-"
+		ruleID = Split(modules,"`")(0)
+		'MsgBox ruleID
+		module = Split(modules,"`")(1)
+		subModule = Split(modules,"`")(2)
+		
+		set lstFirstNode = gView.CreateNodeList
+		set lstSecondNode = gView.CreateNodeList
+		
+		set module_one_sub_list_All = gView.CreateNodeList
+		set module_two_sub_list_All = gView.CreateNodeList
+		
+		set gMeasureManager = gView.MeasurementManager		'Measurment Manager
+		gMeasureManager.DeleteAllMeasurements				'Delete existing measurments
+		Dim Objexcel, ObjWorkbook, ObjDriverSheet, Fieldvalue, Rowcount	, ColumnCount			
+		
+		set Objexcel = Createobject("Excel.Application")
+		
+		
+		Set ObjWorkbook = ObjExcel.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\RuleBook_CV_vf.xlsx")
+		
+		Set ObjDriverSheet = ObjWorkbook.Worksheets(1)	
+		ColumnCount = ObjDriverSheet.Usedrange.Columns.Count
+		Rowcount = ObjDriverSheet.Usedrange.Rows.Count
+		
+		set measurement_manager = gView.MeasurementManager
+		
+		for ij = 2 to rowCount
+			
+			'Execution_Type =  Objdriversheet.Cells(ij,21)
+			
+			if Objdriversheet.Cells(ij,1) = ruleID then
+			
+				firstPrt = Objdriversheet.Cells(ij,15)
+				first_prt_module = Trim(Objdriversheet.Cells(ij,10))
+				
+				if firstPrt <> "" then
+				
+					firstPrt = check_for_available_part(first_prt_module,firstPrt)
+				
+				End if
+				
+				if firstPrt = "" then
+				
+					firstPrt = Objdriversheet.Cells(ij,10)
+					assmebly_one_NodeMeasure = true
+	
+				end if
+				
+				firstPrt = Trim(firstPrt)
+				
+				secondPrt = Objdriversheet.Cells(ij,16)
+				second_prt_module = Trim(Objdriversheet.Cells(ij,11))
+				
+				if secondPrt <> "" then
+				
+					secondPrt = check_for_available_part(second_prt_module,secondPrt)
+
+				End if
+				
+				if secondPrt = "" then 
+					secondPrt = Objdriversheet.Cells(ij,11)	
+					assmebly_two_NodeMeasure = true
+				end if
+				
+				secondPrt = Trim(secondPrt)
+				
+				If IsEmpty(Objdriversheet.Cells(ij, 19)) Then
+					RequiredClr = Objdriversheet.Cells(ij,20)
+				Else
+					RequiredClr = Objdriversheet.Cells(ij,19)
+				End If
+				
+				RClearance = Split(RequiredClr," ")(1)
+
+				description = Objdriversheet.Cells(ij,14)
+				
+				Execution_Type =  Objdriversheet.Cells(ij,21)
+				
+				
+				'msgbox "part 1" & " " &firstPrt
+				'msgbox "part 2" & " " &secondPrt
+				
+				Exit For
+			
+			end if
+			
+		Next
+		
+		objExcel.Application.Quit
+		
+		
+		if Not IsEmpty(firstPrt) AND Not IsEmpty(secondPrt) Then
+			
+			for a = 0 to (gNodes.NumNodes-1)
+			
+				if Instr(gNodes.Node(a).PrintableName,first_prt_module) AND Instr(gNodes.Node(a).PrintableName,"-geom") = 0 Then
+				
+					set node1_all_prop = gNodes.Node(a).MetaDataProperties
+					
+					for kkkk = 0 to (node1_all_prop.NumProperties-1)
+					
+						Dim ProName, ProVal 
+						Set ProName = Nothing
+						Set ProVal = Nothing
+					
+						Call node1_all_prop.GetProperty(kkkk, ProName, ProVal)
+						
+						if Instr(ProName,"PartType") then
+						
+			
+							if (ProVal = "Module") then
+							
+								gView.DeSelectAllNodes
+								gNodes.Node(a).Selected = True
+								
+								Call gView.Find(3, 2, "Name",2,"*", "", mod_one_get_child)
+								
+								for jjj = 0 to (mod_one_get_child.NumNodes-1)
+										
+									module_one_sub_list_All.appendNode mod_one_get_child.Node(jjj)
+									
+								next
+							
+							end if
+							
+						
+						end if
+					
+					next
+				
+				
+				end if
+			
+			next
+			
+			for a = 0 to (gNodes.NumNodes-1)
+			
+				if Instr(gNodes.Node(a).PrintableName,second_prt_module) AND Instr(gNodes.Node(a).PrintableName,"-geom") = 0 Then
+				
+				
+					set node2_all_prop = gNodes.Node(a).MetaDataProperties
+					
+					for jjjj = 0 to (node2_all_prop.NumProperties-1)
+					
+						Dim ProName1, ProVal1 
+						Set ProName1 = Nothing
+						Set ProVal1 = Nothing
+					
+						Call node2_all_prop.GetProperty(jjjj, ProName1, ProVal1)
+						
+						if Instr(ProName1,"PartType") then
+						
+							
+							if (ProVal1 = "Module") then
+								
+								gView.DeSelectAllNodes
+								gNodes.Node(a).Selected = True
+								
+								Call gView.Find(3, 2, "Name",2,"*", "", mod_two_get_child)
+								
+								for jjj = 0 to (mod_two_get_child.NumNodes-1)
+										
+									module_two_sub_list_All.appendNode mod_two_get_child.Node(jjj)
+									
+								next
+							
+							end if
+							
+						
+						end if
+					
+					next
+				
+				
+				end if
+			
+			next
+			
+
+			if (assmebly_one_NodeMeasure) then
+				
+				Call gView.FindInList(module_one_sub_list_All,0,"Name", 2, "*", "", out_first_ChildNodeList)
+				
+				for i = 0 to out_first_ChildNodeList.NumNodes-1
+
+					if (out_first_ChildNodeList.Node(i).IsPart) AND (out_first_ChildNodeList.Node(i).isLoaded) AND Instr(out_first_ChildNodeList.Node(i).PrintableName,"-geom") = 0 then
+									
+						b1 = out_first_ChildNodeList.Node(i).BBox
+						n_X = b1(0) + b1(3)
+						n_Y = b1(1) + b1(4)
+						n_Z = b1(2) + b1(5)
+						
+						if Not(n_X = 0) OR Not(n_Y = 0) OR Not(n_Z = 0) then
+						
+							if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+							
+								lstFirstNode.appendNode out_first_ChildNodeList.Node(i)
+							
+							end if
+						
+						end if
+					
+					end if
+					
+				Next
+			
+			else
+			
+				for b = 0 to (module_one_sub_list_All.NumNodes-1)
+				
+					if Instr(module_one_sub_list_All.Node(b).PrintableName,firstPrt) AND Instr(module_one_sub_list_All.Node(b).PrintableName,"-geom") = 0 Then
+					
+						
+						'if (module_one_sub_list_All.Node(b).IsPart) AND (module_one_sub_list_All.Node(b).isLoaded) AND Instr(module_one_sub_list_All.Node(b).PrintableName,"-geom") = 0 then
+						if (module_one_sub_list_All.Node(b).IsPart) AND (module_one_sub_list_All.Node(b).isLoaded) then
+							
+							b1 = module_one_sub_list_All.Node(b).BBox
+							n_X = b1(0) + b1(3)
+							n_Y = b1(1) + b1(4)
+							n_Z = b1(2) + b1(5)
+							
+							
+							if Not(n_X = 0) OR Not(n_Y = 0) OR Not(n_Z = 0) then
+							
+								if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+							
+									lstFirstNode.appendNode module_one_sub_list_All.Node(b)
+								
+								end if
+							
+							end if
+							
+						else
+							
+							if (module_one_sub_list_All.Node(b).isLoaded) then
+							
+								set prt_one_found = module_one_sub_list_All.Node(b)
+								set prt_one_found_child = prt_one_found.Children
+								Call gView.FindInList(prt_one_found_child,0,"Name", 2, "*", "", out_first_ChildNodeList)
+														
+								for i = 0 to out_first_ChildNodeList.NumNodes-1
+														
+									'if (out_first_ChildNodeList.Node(i).isLoaded) AND (out_first_ChildNodeList.Node(i).IsPart) AND Instr(out_first_ChildNodeList.Node(i).PrintableName,"-geom") = 0 then
+									if (out_first_ChildNodeList.Node(i).isLoaded) AND (out_first_ChildNodeList.Node(i).IsPart) then
+																		
+										b1 = out_first_ChildNodeList.Node(i).BBox
+										n_X = b1(0) + b1(3)
+										n_Y = b1(1) + b1(4)
+										n_Z = b1(2) + b1(5)
+										
+										if Not(n_X = 0) OR Not(n_Y = 0) OR Not(n_Z = 0) then
+										
+											if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+										
+												lstFirstNode.appendNode out_first_ChildNodeList.Node(i)
+											
+											end if
+										
+										end if
+									
+									end if
+														
+								Next
+							
+							end if
+							
+						end if
+												
+					end if
+				
+				next
+				
+			end if
+			
+			
+			if (assmebly_two_NodeMeasure) then
+			
+				Call gView.FindInList(module_two_sub_list_All,0,"Name", 2, "*", "", out_second_ChildNodeList)
+				
+				for i = 0 to out_second_ChildNodeList.NumNodes-1
+					
+					if (out_second_ChildNodeList.Node(i).IsPart) AND (out_second_ChildNodeList.Node(i).isLoaded) AND Instr(out_second_ChildNodeList.Node(i).PrintableName,"-geom") = 0 then
+						
+						b1 = out_second_ChildNodeList.Node(i).BBox
+						n_X = b1(0) + b1(3)
+						n_Y = b1(1) + b1(4)
+						n_Z = b1(2) + b1(5)
+						
+						
+						if Not(n_X = 0) OR Not(n_Y = 0) OR Not(n_Z = 0) then
+						
+							if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+						
+								lstSecondNode.appendNode out_second_ChildNodeList.Node(i)
+							
+							end if
+						
+						end if
+					
+					end if
+					
+				Next
+			
+			else
+			
+				for b = 0 to (module_two_sub_list_All.NumNodes-1)
+				
+					if Instr(module_two_sub_list_All.Node(b).PrintableName,secondPrt) AND Instr(module_two_sub_list_All.Node(b).PrintableName,"-geom") = 0 Then
+						
+						'if (module_two_sub_list_All.Node(b).IsPart) AND (module_two_sub_list_All.Node(b).isLoaded) AND Instr(module_two_sub_list_All.Node(b).PrintableName,"-geom") = 0 then
+						if (module_two_sub_list_All.Node(b).IsPart) AND (module_two_sub_list_All.Node(b).isLoaded) then
+					
+							b1 = module_two_sub_list_All.Node(b).BBox
+							n_X = b1(0) + b1(3)
+							n_Y = b1(1) + b1(4)
+							n_Z = b1(2) + b1(5)
+							
+							if Not(n_X = 0) OR Not(n_Y = 0) OR Not(n_Z = 0) then
+							
+								if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+								
+									lstSecondNode.appendNode module_two_sub_list_All.Node(b)
+								
+								end if
+							
+							end if
+						
+							
+						else
+							
+							if (module_two_sub_list_All.Node(b).isLoaded) then
+							
+								set prt_two_found = module_two_sub_list_All.Node(b)
+								set prt_two_ass_node_child = prt_two_found.Children
+								
+								Call gView.FindInList(prt_two_ass_node_child,0,"Name", 2, "*", "", out_second_ChildNodeList)
+								
+								for i = 0 to out_second_ChildNodeList.NumNodes-1
+									
+									'if (out_second_ChildNodeList.Node(i).isLoaded) AND (out_second_ChildNodeList.Node(i).IsPart) AND Instr(out_second_ChildNodeList.Node(i).PrintableName,"-geom") = 0 then
+									if (out_second_ChildNodeList.Node(i).isLoaded) AND (out_second_ChildNodeList.Node(i).IsPart) then
+		
+										b1 = out_second_ChildNodeList.Node(i).BBox
+										n_X = b1(0) + b1(3)
+										n_Y = b1(1) + b1(4)
+										n_Z = b1(2) + b1(5)
+										
+										
+										
+										if Not(n_X = 0) OR Not(n_Y = 0) OR Not(n_Z = 0) then
+										
+											if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+													
+												lstSecondNode.appendNode out_second_ChildNodeList.Node(i)
+												
+											end if
+										
+										end if
+									
+									end if
+									
+								Next
+							
+							end if
+						
+						end if
+						
+						
+					end if
+				
+				next
+			
+			end if
+			
+			'msgbox "first part node list " &lstFirstNode.NumNodes
+			'msgbox "second part node list " &lstSecondNode.NumNodes
+			
+			
+			if(Execution_Type = "Automatic") then
+		
+				Set Measurement = measurement_manager.MeasureSetDistance(lstFirstNode, lstSecondNode)
+				
+				Distance = Measurement.Distance
+
+				RClearance = Replace(RClearance,"mm","")
+			
+				if not (RClearance = "-") then
+				
+					If CDbl(Distance)>CDbl(RClearance) Then
+					
+						status = "Pass"
+						tempDist = Round(Distance,2) &" mm"
+						
+						fScore = 0
+						
+					else
+					
+						status = "Fail"
+						tempDist = Round(Distance,2) &" mm"
+						
+						fScore = checkScore(tempDist, RClearance)
+						
+					end if
+				else 
+					tempDist = Round(Distance,2) &" mm"
+				end if
+				
+				Call addSummary(ruleID, RequiredClr, status, tempDist,fScore,module&"-"&subModule,1,0,root_node_print_name)
+				Call CreateImage("Current View",lstFirstNode, lstSecondNode, ruleID)
+				
+			else
+			
+				gView.AllNodesOff	
+									
+				for io=0 to lstFirstNode.NumNodes-1										
+					lstFirstNode.Node(io).Visible = true
+				Next
+				for kj = 0 to lstSecondNode.NumNodes-1
+					lstSecondNode.Node(kj).Visible = true
+				Next
+				Interfering_modules =  Split(modules,"`")(1) &"-" &  Split(modules,"`")(2)
+				call mannual_semi(ruleID,Interfering_modules,description, RequiredClr)
+			
+			end if
+		
+		end if
+		
+		DisconnetManager()
+		document.getElementById("defaultOpen").click()
+	
+	end sub
+	
+<!-- ------------------------------------------------------------------------------------------------	 -->
+	sub DisconnetManager
+		set gClearanceManager = Nothing
+		set gMeasureManager = Nothing
+	end sub
+<!-- ------------------------------------------------------------------------------------------------	 -->
+
+	function check_for_available_part(md,pts)
+	
+		Dim founded_prt
+		
+		Dim all_parts_under_module
+		
+		Dim All_node_list_per_module
+		
+		Dim b1
+		Dim n_X
+		Dim n_Y
+		Dim n_Z
+		
+		fj = False
+	
+		gView.DeSelectAllNodes
+		
+		Call gView.Find(0, 1, "Name",2,"*", "", outNode)
+		set gAssemblyNodes = outNode
+		
+		set gNodes = gAssemblyNodes
+		
+		Module_number = md
+		
+		Part_list = Split(pts, ":")
+		
+		for kk=0 to (gNodes.NumNodes-1)
+					
+			if Instr(gNodes.Node(kk).PrintableName,Module_number) Then
+			
+				set module_found = gNodes.Node(kk)
+				
+				if Instr(module_found.PrintableName,"-geom") = 0 then
+				
+					'founded_prt = ""
+					
+					gNodes.Node(kk).Selected = True
+					
+					Call gView.Find(3, 2, "Name",2,"*", "", All_node_list_per_module)
+					
+					set all_parts_under_module = All_node_list_per_module
+					
+					'msgbox all_parts_under_module.NumNodes
+					
+					for sngl_part=0 to UBound(Part_list)
+						
+						
+						for prt_list=0 to (all_parts_under_module.NumNodes-1)
+						
+							if Instr(all_parts_under_module.Node(prt_list).PrintableName,Part_list(sngl_part)) AND Instr(all_parts_under_module.Node(prt_list).PrintableName,"-geom") = 0 then
+								
+								'msgbox all_parts_under_module.Node(prt_list).PrintableName
+								
+								On Error Resume Next
+								
+								b1 = all_parts_under_module.Node(prt_list).BBox
+								 
+								
+								If Err.Number <> 0 Then
+									
+									'Exit for
+								
+								Else
+									
+									n_X = b1(0) + b1(3)
+									n_Y = b1(1) + b1(4)
+									n_Z = b1(2) + b1(5)
+									
+									'msgbox n_X&"===="&n_Y&"===="&n_Z
+									
+									if Not(n_X = 0) OR Not(n_Y = 0) OR Not(n_Z = 0) then
+										
+										if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+
+											founded_prt = Part_list(sngl_part)
+											fj = True
+											
+											'msgbox "HI"
+											
+											Exit for
+										
+										end if
+									
+									end if
+									
+								End If
+								
+								On Error GoTo 0
+								
+							End if
+						
+						Next
+						
+						if (fj) then
+						
+							Exit for
+						
+						end if
+					
+					Next
+					
+				End if
+			
+			End if
+			
+		Next
+		
+		'msgbox founded_prt
+		
+		check_for_available_part = founded_prt
+		
+	
+	end function
+
+<!-- ------------------------------------------------------------------------------------------------	 -->
+
+
+
+	function getAllChildrens(PNode)
+		Dim lastChild, outChildNodeList
+		Set childNodeList = PNode.Children
+		Call gView.FindInList(childNodeList,0,"Name", 2, "*", "", outChildNodeList)		
+		'msgbox outChildNodeList.NumNodes	
+		getAllChildrens = outChildNodeList
+	end function
+<!-- ------------------------------------------------------------------------------------------------	 -->
+	
+	Function checkScore(tempDist, RClearance)
+		Dim Score
+		Dim Dist 
+		Dim minClearnce,maxClearnce
+		Dim gap_percentage
+		
+		'msgbox tempDist
+		
+		minClearnce = RClearance 
+		maxClearnce = RClearance + (0.2*RClearance) 
+		
+		'MsgBox "Min- " &minClearnce &" Max-" &maxClearnce
+		Dist = Split(tempDist,"/")
+		'msgbox Dist
+		for h = 0 to Ubound(Dist)
+			rDistance = Trim(Replace(Dist(h),"mm",""))
+			
+			gap_percentage = ((rDistance/RClearance)*100)
+			
+			'msgbox gap_percentage
+			
+			gap_percentage = 100 - gap_percentage
+			
+			if (CDbl(gap_percentage) > 0) AND (CDbl(gap_percentage) < 20) then
+				Score = 10
+			elseif (CDbl(gap_percentage) >= 20) AND (CDbl(gap_percentage) <= 80) then
+				'MsgBox "No"
+				Score = 20
+			elseif (CDbl(gap_percentage) > 80) AND (CDbl(gap_percentage) <= 100) then
+				
+					Score = 40
+			end if
+		Next
+		checkScore = Score
+		'MsgBox checkScore
+	end Function
+	
+	Sub CreateImage_old(view,lstnode1,lstnode2, ruleID)			
+			dim node1
+			dim node2	
+			'msgbox lstnode1.NumNodes
+			'msgbox lstnode2.NumNodes
+			tfolder = "C:\temp\"
+			'msgbox tfolder
+			'off all Nodes
+			set gMeasureManager = Nothing
+			gView.AllNodesOff
+			for kk=0 to (lstnode1.NumNodes-1)
+				lstnode1.Node(kk).Visible = true
+			Next
+			for kl=0 to (lstnode2.NumNodes-1)
+				lstnode2.Node(kl).Visible = true
+			Next
+			
+			set node1 = lstnode1.Node(0)
+			'msgbox lstnode1.NumNodes
+			set node2 = lstnode2.Node(0)
+			
+			node2.Visible = True
+			gView.UpdateView
+			'DoEvents
+			
+			'msgbox lstnode2.NumNodes
+			'msgbox "Hi"
+		    Set objFSO = CreateObject("Scripting.FileSystemObject")
+			
+			'msgbox "Hi"
+             
+			If objFSO.FolderExists(tfolder) Then
+				'msgbox "Hi"
+  			Else
+			   Set newfolder = objFSO.CreateFolder(tfolder)  	   
+			   MsgBox("Created c:\temp directory.")
+			End If
+
+				'Call getVisibleNode(node1,node2)
+				Dim BBNode1,BBNode2
+				'MsgBox "node1 Name::" & node1.PrintableName
+				
+				'msgbox "Hi"
+				BBNode1 = node1.BBox
+				
+				msgbox "Hi"
+				
+				BBNode2 = node2.BBox
+				'msgbox "Hi"
+										
+				Node1X = BBNode1(0) - BBNode1(3)
+				Node1Y = BBNode1(1) - BBNode1(4)
+				Node1Z = BBNode1(2) - BBNode1(5)
+				
+				node1Length = Sqr((Node1X*Node1X) + (Node1Y*Node1Y) +(Node1Z*Node1Z))
+				
+				Node2X = BBNode2(0) - BBNode2(3)
+				Node2Y = BBNode2(1) - BBNode2(4)
+				Node2Z = BBNode2(2) - BBNode2(5)
+				
+				node2Length = Sqr((Node2X*Node2X) + (Node2Y*Node2Y) +(Node2Z*Node2Z))
+								
+				If  node1Length > node2Length Then
+					node1.Visible = False
+				Else
+					 node2.Visible = False
+				End If	
+				
+			
+					 ' Fetch scene's bounding box and current camera position
+					Call gView.GetVisibleBBox(boxMin, boxMax)
+					Call gView.GetCameraPosition(UpVec, LookAtVec, EyePt)
+
+					' Calculate scene's bounding volume and view distance
+					Call CalcSceneVolume( gView, r, d, xc, yc, zc )
+
+					' Calculate new camera parameters
+					LookAtVec(0) = xc - boxMin(0)
+					LookAtVec(1) = yc - boxMin(1)
+					LookAtVec(2) = zc - boxMax(2)
+
+					' Normalize LookAtVec
+					LookAtVec = NormalizeVec3( LookAtVec )
+
+					' Scale LookAtVec by the viewing distance
+					LookAtVec(0) = d * LookAtVec(0)
+					LookAtVec(1) = d * LookAtVec(1)
+					LookAtVec(2) = d * LookAtVec(2)
+
+					EyePt(0) = xc - LookAtVec(0)
+					EyePt(1) = yc - LookAtVec(1)
+					EyePt(2) = zc - LookAtVec(2)
+
+					UpVec(0) = 0.0
+					UpVec(1) = 0.0
+					UpVec(2) = 1.0
+
+					' Set camera, update view
+					Call gView.SetCameraPosition(UpVec, LookAtVec, EyePt)
+					gView.UpdateView
+					gView.FitAll
+					
+					If  node1Length > node2Length Then
+						node1.Visible = True
+					Else
+						 node2.Visible = True
+					End If
+					
+					'ImgFile = tfolder & "\" &ruleID &".jpg"		
+					'ImgFile = tfolder & "\" &ruleID &".png"		
+					ImgFile = tfolder & "\" &ruleID &".bmp"		
+					gView.CaptureImage(ImgFile)
+					<!-- imagePathArr(0) = ImgFile -->
+					
+		End Sub
+		
+		Sub CreateImage(view,lstnode1,lstnode2, ruleID)			
+			
+			
+			Dim node1, node2
+			Dim tfolder
+			tfolder = "C:\temp\"
+
+			' Off all Nodes
+			Set gMeasureManager = Nothing
+			gView.AllNodesOff
+
+			' Show all nodes in both lists
+			For kk = 0 To (lstnode1.NumNodes - 1)
+				lstnode1.Node(kk).Visible = True
+			Next
+			For kl = 0 To (lstnode2.NumNodes - 1)
+				'msgbox lstnode2.Node(kl).PrintableName
+				lstnode2.Node(kl).Visible = True
+			Next
+
+			' Check if node lists are not empty
+			If lstnode1.NumNodes = 0 Or lstnode2.NumNodes = 0 Then
+				MsgBox "One of the node lists is empty.", vbExclamation
+				Exit Sub
+			End If
+
+			Set node1 = lstnode1.Node(0)
+			Set node2 = lstnode2.Node(0)
+
+			node1.Visible = True
+			node2.Visible = True
+			gView.UpdateView
+			'DoEvents
+
+			' Prepare folder
+			Set objFSO = CreateObject("Scripting.FileSystemObject")
+			If Not objFSO.FolderExists(tfolder) Then
+				objFSO.CreateFolder tfolder
+				MsgBox "Created C:\temp directory."
+			End If
+
+			' Get BBox safely
+			Dim BBNode1, BBNode2
+			
+			On Error Resume Next
+			
+			BBNode1 = node1.BBox
+			BBNode2 = node2.BBox
+			
+			<!-- If Err.Number <> 0 Then -->
+				<!-- MsgBox "Error getting node2 BBox: " & Err.Description, vbCritical -->
+				<!-- Exit Sub -->
+			<!-- End If -->
+			<!-- On Error GoTo 0 -->
+
+			' Calculate lengths
+			Node1X = BBNode1(0) - BBNode1(3)
+			Node1Y = BBNode1(1) - BBNode1(4)
+			Node1Z = BBNode1(2) - BBNode1(5)
+			node1Length = Sqr((Node1X * Node1X) + (Node1Y * Node1Y) + (Node1Z * Node1Z))
+
+			Node2X = BBNode2(0) - BBNode2(3)
+			Node2Y = BBNode2(1) - BBNode2(4)
+			Node2Z = BBNode2(2) - BBNode2(5)
+			node2Length = Sqr((Node2X * Node2X) + (Node2Y * Node2Y) + (Node2Z * Node2Z))
+
+			' Hide the longer node
+			If node1Length > node2Length Then
+				node1.Visible = False
+			Else
+				node2.Visible = False
+			End If
+
+			' Adjust camera
+			Call gView.GetVisibleBBox(boxMin, boxMax)
+			Call gView.GetCameraPosition(UpVec, LookAtVec, EyePt)
+			Call CalcSceneVolume(gView, r, d, xc, yc, zc)
+
+			LookAtVec(0) = xc - boxMin(0)
+			LookAtVec(1) = yc - boxMin(1)
+			LookAtVec(2) = zc - boxMax(2)
+			LookAtVec = NormalizeVec3(LookAtVec)
+
+			LookAtVec(0) = d * LookAtVec(0)
+			LookAtVec(1) = d * LookAtVec(1)
+			LookAtVec(2) = d * LookAtVec(2)
+
+			EyePt(0) = xc - LookAtVec(0)
+			EyePt(1) = yc - LookAtVec(1)
+			EyePt(2) = zc - LookAtVec(2)
+
+			UpVec(0) = 0.0
+			UpVec(1) = 0.0
+			UpVec(2) = 1.0
+
+			Call gView.SetCameraPosition(UpVec, LookAtVec, EyePt)
+			gView.UpdateView
+			gView.FitAll
+
+			' Re-show both nodes
+			node1.Visible = True
+			node2.Visible = True
+
+			' Capture image
+			ImgFile = tfolder & "\" & ruleID & ".bmp"
+			gView.CaptureImage ImgFile
+		
+
+					
+		End Sub	
+		
+		Sub CalcSceneVolume(ByRef gView, ByRef r, ByRef d, ByRef xc, ByRef yc, ByRef zc)
+			'Call Connect_All()
+			
+			Dim boxMin, boxMax
+
+			Set boxMin = Nothing
+			Set boxMax = Nothing
+
+			' Fetch scene's bounding box
+			Call gView.GetVisibleBBox(boxMin, boxMax)
+
+			' Calculate scene center
+			xc = (boxMin(0) + boxMax(0)) / 2.0
+			yc = (boxMin(1) + boxMax(1)) / 2.0
+			zc = (boxMin(2) + boxMax(2)) / 2.0
+
+			' Calculate scene radius
+			r = Sqr((xc - boxMin(0)) * (xc - boxMin(0)) _
+				+ (yc - boxMin(1)) * (yc - boxMin(1)) _
+				+ (zc - boxMin(2)) * (zc - boxMin(2)))
+
+			' Calculate viewing distance (based on nominal 40 degree FOV)
+			d = r / 0.364  ' tan(20) = 0.364		
+			'Call DisConnect_All()
+		End Sub 
+		
+		Function NormalizeVec3( V() )
+			Dim lng
+			lng = Sqr( (V(0) * V(0)) + (V(1) * V(1)) + (V(2) * V(2)) )
+			V(0) = V(0) / lng
+			V(1) = V(1) / lng
+			V(2) = V(2) / lng
+			NormalizeVec3 = V
+		End Function
+		
+	function showinfo(id)
+		
+		Dim ruleId
+		ruleId = Split(id,"`")(0)
+				
+		Dim Objexcel, ObjWorkbook, ObjDriverSheet, Fieldvalue, Rowcount	, ColumnCount			
+		
+		set Objexcel = Createobject("Excel.Application")
+		
+		
+		Set ObjWorkbook = ObjExcel.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\RuleBook_CV_vf.xlsx")
+		
+		Set ObjDriverSheet = ObjWorkbook.Worksheets(1)	
+		ColumnCount = ObjDriverSheet.Usedrange.Columns.Count
+		Rowcount = ObjDriverSheet.Usedrange.Rows.Count
+		
+		for ij = 2 to rowCount
+			
+			if Objdriversheet.Cells(ij,1) = ruleId then 
+				<!-- MsgBox "Aggregate:-" &Objdriversheet.Cells(ij,2) & vbcrlf &"Rule Description:- " &Objdriversheet.Cells(ij,14) & vbcrlf &"Design Group:- " &Objdriversheet.Cells(ij,12)&" & "&Objdriversheet.Cells(ij,13), vbOKOnly, "DVLO Clearance Check" -->
+				MsgBox "Aggregate:-" &Objdriversheet.Cells(ij,2) & vbcrlf &"Design Group:- " &Objdriversheet.Cells(ij,12)&" & "&Objdriversheet.Cells(ij,13)& vbcrlf& vbcrlf&"Rule Description:- " &Objdriversheet.Cells(ij,14) & vbcrlf , vbOKOnly, "DVLO Clearance Check"
+			end if
+		Next
+		Objexcel.Quit
+						
+	end function
+	
+	sub CaptureImg_Mannual(RuleId)
+		
+		dim tfolder, ImgFile
+		
+		tfolder = "C:\temp\"
+		ImgFile = tfolder & "\" &RuleId &".bmp"		
+		gView.CaptureImage(ImgFile)
+	end sub
+	
+	sub reportDownload()
+	
+		dim table
+		set table = document.getElementById("summary_table")
+		Dim tableRow
+		Dim tableCol, imgName
+		
+		Dim Objexcel1, ObjWorkbook1, ObjDriverSheet1,ObjDriverSheet2, Fieldvalue1, Rowcount1, Rowcount2	, ColumnCount1
+						Dim imagePath 		
+						set Objexcel1 = Createobject("Excel.Application")		
+						Objexcel1.Visible = True
+						Set ObjWorkbook1 = ObjExcel1.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\Book1.xlsx")		
+						Set ObjDriverSheet1 = ObjWorkbook1.Worksheets(1)	
+							
+						ColumnCount1 = ObjDriverSheet1.Usedrange.Columns.Count
+						Rowcount1 = ObjDriverSheet1.Usedrange.Rows.Count
+						Rowcount1 = ObjDriverSheet1.Usedrange.Rows.Count
+						'msgbox Rowcount1
+					
+		tableRow = table.rows.length
+		'msgbox tableRow
+		
+		For n = 1 To (tableRow - 1)
+			Dim ruleID, Status, result, Score, designGroup , clearance, description,userScore,userID
+			dim Modules, PrtNumbers
+			ruleID = table.Rows(n).Cells(0).innerHTML
+			'msgbox ruleID
+			'msgbox "1st"
+			if(ruleID = "") then
+				for p = n-1 to 1 step -1 
+				<!-- msgbox p &"---"&n -->
+					ruleID = table.Rows(p).Cells(0).innerHTML
+					<!-- msgbox ruleID -->
+					if Not(ruleID = "") then
+						Status = table.Rows(p).Cells(4).innerHTML
+						result = table.Rows(n).Cells(3).innerHTML
+						score = table.Rows(p).Cells(5).innerHTML
+						imgName = table.Rows(n).Cells(1).innerHTML
+						Exit For
+					end if
+				next
+				PrtNumbers = table.Rows(n).Cells(1).innerHTML
+				<!-- msgbox"yes...next" -->
+			else	
+
+				Status = table.Rows(n).Cells(4).innerHTML
+				'msgbox status
+				result = table.Rows(n).Cells(3).innerHTML
+				'msgbox result
+				score = table.Rows(n).Cells(5).innerHTML
+				userID = "userText"&ruleID
+				userScore = document.getElementById(userID).value
+				usercommentID = "usercomment"&ruleID
+				usercomment = document.getElementById(usercommentID).value
+				<!-- MsgBox score -->
+				imgName = ruleID	
+				'msgbox imgName				
+			end if
+				if Status = "Fail" OR Status = "Pass" then 
+					'MsgBox "In"
+					Dim Objexcel2, ObjWorkbook, ObjDriverSheet, Fieldvalue, Rowcount	, ColumnCount
+					set Objexcel2 = Createobject("Excel.Application")
+					Set ObjWorkbook = ObjExcel2.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\RuleBook_CV_vf.xlsx")
+					Set ObjDriverSheet = ObjWorkbook.Worksheets(1)	
+					ColumnCount = ObjDriverSheet.Usedrange.Columns.Count
+					Rowcount = ObjDriverSheet.Usedrange.Rows.Count		
+					
+					
+					for ij = 2 to rowCount
+						'msgbox ruleID
+						if Objdriversheet.Cells(ij,1) = ruleID then
+							clearance = Objdriversheet.Cells(ij,19)
+							designGroup = Objdriversheet.Cells(ij,12) &" & " &Objdriversheet.Cells(ij,13)
+							description = Objdriversheet.Cells(ij,14)
+							Modules = Objdriversheet.Cells(ij,10) &" & " &Objdriversheet.Cells(ij,11)
+							if Objdriversheet.Cells(ij,15) <> "" AND Objdriversheet.Cells(ij,16) <> "" then
+								PrtNumbers = Objdriversheet.Cells(ij,15) &" & " &Objdriversheet.Cells(ij,16)
+							elseif isEmpty(Objdriversheet.Cells(ij,15)) AND not isEmpty(Objdriversheet.Cells(ij,16)) then
+								PrtNumbers = Objdriversheet.Cells(ij,10) &" & " &Objdriversheet.Cells(ij,16)
+							elseif not isEmpty(Objdriversheet.Cells(ij,15)) AND isEmpty(Objdriversheet.Cells(ij,16)) then
+								PrtNumbers = Objdriversheet.Cells(ij,15) &" & " &Objdriversheet.Cells(ij,11)
+							end if
+						end if
+					Next
+					'Objexcel.Quit
+					'MsgBox "OK"
+					if not(result="-") then
+						<!-- writeReport ruleID,result,Score,designGroup ,clearance,description,modules,PrtNumbers,imgName,userScore				 -->								
+						Objdriversheet1.cells(Rowcount1+1,1).value = (Rowcount1-3)		
+						Objdriversheet1.cells(Rowcount1+1,3).value = description
+						Objdriversheet1.cells(Rowcount1+1,6).value = clearance
+						Objdriversheet1.cells(Rowcount1+1,7).value = result
+						Objdriversheet1.cells(Rowcount1+1,8).value = designGroup			
+						Objdriversheet1.cells(Rowcount1+1,9).value = Score
+						Objdriversheet1.cells(Rowcount1+1,10).value = userScore
+						Objdriversheet1.cells(Rowcount1+1,11).value = usercomment
+						Objdriversheet1.cells(Rowcount1+1,12).value = Status
+						Objdriversheet1.cells(Rowcount1+1,13).value = modules
+						Objdriversheet1.cells(Rowcount1+1,14).value = PrtNumbers
+						
+						With Objdriversheet1.Cells(Rowcount1 + 1, 12)
+							.Value = Status
+							If .Value = "Fail" Then
+								.Interior.Color = RGB(255, 255, 153)
+								.Font.Bold = True
+							elseif .Value = "Pass" then
+								.Interior.Color = RGB(153, 255, 153)
+								.Font.Bold = True
+							End If
+						End With
+						
+						if Instr(imgName,"&amp;") then
+							imgName = Replace(imgName,"&amp;", "&")
+						end if
+						
+						imagePath = "C:\temp\"&imgName&".bmp"
+						<!-- msgbox imagePath -->
+						Set myPic = Objdriversheet1.Shapes.AddPicture(imagePath, False, True, 0, 0, 190, 190)
+
+						With myPic			
+							.Top = (Objdriversheet1.Cells(Rowcount1+1, 4).Top) + 5 'according to variables from correct answer
+							.Left = (Objdriversheet1.Cells(Rowcount1+1, 4).Left) + 5
+							.LockAspectRatio = msoFalse			
+						End With		
+						ObjDriverSheet1.Rows(Rowcount1+1).RowHeight = 200
+						
+						ColumnCount1 = ColumnCount1+1
+						Rowcount1 = Rowcount1 + 1
+						
+						
+					end if
+				end if
+			
+						
+		Next
+		
+		<!-- GenerateSummary() -->
+		'msgbox "hi"
+		Demerit100 = 0
+		Demerit40 = 0
+		Demerit20 = 0
+		Demerit10 = 0
+		totalCount = 0
+		
+		for io = 4 to Rowcount1
+			
+			if (ObjDriverSheet1.Cells(io,9)="100") OR (ObjDriverSheet1.Cells(io,10)="100") then 
+				Demerit100 = Demerit100+1
+				totalCount = totalCount+1
+			elseif (ObjDriverSheet1.Cells(io,9)="40") OR (ObjDriverSheet1.Cells(io,10)="40") then
+				Demerit40 = Demerit40 +1
+				totalCount = totalCount+1
+			elseif (ObjDriverSheet1.Cells(io,9)="20") OR (ObjDriverSheet1.Cells(io,10)="20") then
+				Demerit20=Demerit20+1
+				totalCount = totalCount+1
+			elseif (ObjDriverSheet1.Cells(io,9)="10") OR (ObjDriverSheet1.Cells(io,10)="10") then
+				Demerit10=Demerit10+1
+				totalCount = totalCount+1
+			end if	
+			
+		Next
+		
+		set ObjDriverSheet2 = ObjWorkbook1.Worksheets("Summary")
+		ObjDriverSheet2.Cells(2,2).Value = gView.RootNode.PrintableName &"/NR;2"
+		ObjDriverSheet2.Cells(2,10).Value = date()
+		ObjDriverSheet2.Cells(9,4).Value = Demerit100
+		ObjDriverSheet2.Cells(10,4).Value = Demerit40
+		ObjDriverSheet2.Cells(11,4).Value = Demerit20
+		ObjDriverSheet2.Cells(12,4).Value = Demerit10
+		
+		
+		ObjWorkbook1.SaveAs "c:\temp\DVLO_CV.xlsx" ' Saves the excel file here.	
+		objExcel1.Application.Quit
+		
+		Objexcel2.Application.Quit
+		
+		sample_reportDownload()
+		
+		msgbox "Report Exported Successfully at - " &"c:\temp\DVLO_CV.xlsx"
+		
+	end sub
+	
+	sub sample_reportDownload()
+	
+		dim table
+		set table = document.getElementById("summary_table")
+		Dim tableRow
+		Dim tableCol, imgName
+		
+		dim chassis_10, chassis_20, chassis_40, chassis_100
+		dim powertrain_10, powertrain_20, powertrain_40, powertrain_100
+		dim ee_10, ee_20, ee_40, ee_100
+		dim cab_10, cab_20, cab_40, cab_100
+		dim appengine_10, appengine_20, appengine_40, appengine_100
+		dim vehicle_10, vehicle_20, vehicle_40, vehicle_100
+		
+		chassis_10 = 0 : chassis_20 = 0 : chassis_40 = 0 : chassis_100 = 0
+		powertrain_10 = 0 : powertrain_20 = 0 : powertrain_40 = 0 : powertrain_100 = 0
+		ee_10 = 0 : ee_20 = 0 : ee_40 = 0 : ee_100 = 0
+		cab_10 = 0 : cab_20 = 0 : cab_40 = 0 : cab_100 = 0
+		appengine_10 = 0 : appengine_20 = 0 : appengine_40 = 0 : appengine_100 = 0
+		vehicle_10 = 0 : vehicle_20 = 0 : vehicle_40 = 0 : vehicle_100 = 0
+		
+		
+		Dim Objexcel2, ObjWorkbook, ObjDriverSheet, Fieldvalue, Rowcount	, ColumnCount
+		set Objexcel2 = Createobject("Excel.Application")
+		Set ObjWorkbook = ObjExcel2.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\RuleBook_CV_vf.xlsx")
+		Set ObjDriverSheet = ObjWorkbook.Worksheets(1)	
+		ColumnCount = ObjDriverSheet.Usedrange.Columns.Count
+		Rowcount = ObjDriverSheet.Usedrange.Rows.Count
+		
+		Dim Objexcel1, ObjWorkbook1, ObjDriverSheet1,ObjDriverSheet2, Fieldvalue1, Rowcount1, Rowcount2	, ColumnCount1		
+		set Objexcel1 = Createobject("Excel.Application")		
+		Objexcel1.Visible = True
+		'Set ObjWorkbook1 = ObjExcel1.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\Book1.xlsx")		
+		Set ObjWorkbook1 = ObjExcel1.WorkBooks.Open("c:\temp\DVLO_CV.xlsx")	
+		'Set ObjDriverSheet1 = ObjWorkbook1.Worksheets(1)
+		set ObjDriverSheet2 = ObjWorkbook1.Worksheets("Summary")
+		
+		'dim is_score
+		
+		tableRow = table.rows.length
+		
+		
+		For n = 1 To (tableRow - 1)
+		
+			Dim ruleID, usercommentID, usercomment, Status, result, Score, designGroup , actual_clearence, clearance, description,userScore,userID,modules
+			dim get_rul_id, aggregets,common_score
+			
+			get_rul_id = ""
+			common_score = 0
+		
+			ruleID = table.Rows(n).Cells(0).innerHTML
+			
+			modules = table.Rows(n).Cells(1).innerHTML
+			
+			clearance =  table.Rows(n).Cells(2).innerHTML
+			
+			actual_clearence = table.Rows(n).Cells(3).innerHTML
+
+			Status = table.Rows(n).Cells(4).innerHTML
+			
+			score = table.Rows(n).Cells(5).innerHTML
+			
+			userID = "userText"&ruleID
+			userScore = document.getElementById(userID).value
+			'msgbox userScore
+			
+			usercommentID = "usercomment"&ruleID
+			usercomment = document.getElementById(usercommentID).value
+			
+			
+			if Not (score = "-" ) then 
+			
+				if (CDbl(score) > 0) then
+				
+					'msgbox ruleID & "-" & modules & "-" & clearance & "-" & actual_clearence & "-" & Status & "-" & score & "-" & userScore & "-" & usercomment
+					
+					get_rul_id = ruleID
+					common_score = score
+				
+				end if
+				
+			else
+			
+				if (CDbl(userScore) > 0) then
+				
+					'msgbox ruleID & "-" & modules & "-" & clearance & "-" & actual_clearence & "-" & Status & "-" & score & "-" & userScore & "-" & usercomment
+					get_rul_id = ruleID
+					common_score = userScore
+				
+				end if
+				
+			end if
+			
+			if Not (get_rul_id = "") then
+			
+				'msgbox get_rul_id
+				
+				for rr = 2 to Rowcount
+				
+					if Objdriversheet.Cells(rr,1) = get_rul_id then
+					
+						aggregets = Trim(Objdriversheet.Cells(rr,2))
+						
+						sep_aggre = Split(aggregets, "||")
+						main_aggre = Trim(sep_aggre(0))
+						'msgbox main_aggre
+						
+						'msgbox main_aggre & " - " & common_score
+						
+						if (main_aggre = "CHASSIS") AND (CDBl(common_score) = 10) then
+							
+							chassis_10 = chassis_10+1
+						
+						elseif (main_aggre = "CHASSIS") AND (CDBl(common_score) = 20) then
+						
+							chassis_20 = chassis_20+1
+						
+						elseif (main_aggre = "CHASSIS") AND (CDBl(common_score) = 40) then
+							
+							chassis_40 = chassis_40+1
+						
+						elseif (main_aggre = "CHASSIS") AND (CDBl(common_score) = 100) then
+						
+							chassis_100 = chassis_100+1
+							
+						elseif (main_aggre = "POWERTRAIN") AND (CDBl(common_score) = 10) then
+							
+							powertrain_10 = powertrain_10+1
+						
+						elseif (main_aggre = "POWERTRAIN") AND (CDBl(common_score) = 20) then
+						
+							powertrain_20 = powertrain_20+1
+						
+						elseif (main_aggre = "POWERTRAIN") AND (CDBl(common_score) = 40) then
+							
+							powertrain_40 = powertrain_40+1
+						
+						elseif (main_aggre = "POWERTRAIN") AND (CDBl(common_score) = 100) then
+						
+							powertrain_100 = powertrain_100+1
+							
+						elseif (main_aggre = "EE") AND (CDBl(common_score) = 10) then
+							
+							ee_10 = ee_10+1
+						
+						elseif (main_aggre = "EE") AND (CDBl(common_score) = 20) then
+						
+							ee_20 = ee_20+1
+						
+						elseif (main_aggre = "EE") AND (CDBl(common_score) = 40) then
+							
+							ee_40 = ee_40+1
+						
+						elseif (main_aggre = "EE") AND (CDBl(common_score) = 100) then
+						
+							ee_100 = ee_100+1
+							
+						elseif (main_aggre = "CAB") AND (CDBl(common_score) = 10) then
+							
+							cab_10 = cab_10+1
+						
+						elseif (main_aggre = "CAB") AND (CDBl(common_score) = 20) then
+						
+							cab_20 = cab_20+1
+						
+						elseif (main_aggre = "CAB") AND (CDBl(common_score) = 40) then
+							
+							cab_40 = cab_40+1
+						
+						elseif (main_aggre = "CAB") AND (CDBl(common_score) = 100) then
+						
+							cab_100 = cab_100+1
+							
+						elseif (main_aggre = "APPLICATION ENGINEERING") AND (CDBl(common_score) = 10) then
+							
+							appengine_10 = appengine_10+1
+						
+						elseif (main_aggre = "APPLICATION ENGINEERING") AND (CDBl(common_score) = 20) then
+						
+							appengine_20 = appengine_20+1
+						
+						elseif (main_aggre = "APPLICATION ENGINEERING") AND (CDBl(common_score) = 40) then
+							
+							appengine_40 = appengine_40+1
+						
+						elseif (main_aggre = "APPLICATION ENGINEERING") AND (CDBl(common_score) = 100) then
+						
+							appengine_100 = appengine_100+1
+							
+						elseif (main_aggre = "VEHICLE") AND (CDBl(common_score) = 10) then
+							
+							vehicle_10 = vehicle_10+1
+						
+						elseif (main_aggre = "VEHICLE") AND (CDBl(common_score) = 20) then
+						
+							vehicle_20 = vehicle_20+1
+						
+						elseif (main_aggre = "VEHICLE") AND (CDBl(common_score) = 40) then
+							
+							vehicle_40 = vehicle_40+1
+						
+						elseif (main_aggre = "VEHICLE") AND (CDBl(common_score) = 100) then
+						
+							vehicle_100 = vehicle_100+1
+											
+						end if
+					
+					end if
+				
+				next
+				
+				
+			
+			end if
+			
+				
+			
+			
+		next
+		
+		'msgbox chassis_40
+		'msgbox chassis_20
+		
+		ObjDriverSheet2.Cells(10,13).Value = chassis_10
+		ObjDriverSheet2.Cells(10,14).Value = chassis_20
+		ObjDriverSheet2.Cells(10,15).Value = chassis_40
+		ObjDriverSheet2.Cells(10,16).Value = chassis_100
+		ObjDriverSheet2.Cells(11,13).Value = powertrain_10
+		ObjDriverSheet2.Cells(11,14).Value = powertrain_20
+		ObjDriverSheet2.Cells(11,15).Value = powertrain_40
+		ObjDriverSheet2.Cells(11,16).Value = powertrain_100
+		ObjDriverSheet2.Cells(12,13).Value = ee_10
+		ObjDriverSheet2.Cells(12,14).Value = ee_20
+		ObjDriverSheet2.Cells(12,15).Value = ee_40
+		ObjDriverSheet2.Cells(12,16).Value = ee_100
+		ObjDriverSheet2.Cells(13,13).Value = cab_10
+		ObjDriverSheet2.Cells(13,14).Value = cab_20
+		ObjDriverSheet2.Cells(13,15).Value = cab_40
+		ObjDriverSheet2.Cells(13,16).Value = cab_100
+		ObjDriverSheet2.Cells(14,13).Value = appengine_10
+		ObjDriverSheet2.Cells(14,14).Value = appengine_20
+		ObjDriverSheet2.Cells(14,15).Value = appengine_40
+		ObjDriverSheet2.Cells(14,16).Value = appengine_100
+		ObjDriverSheet2.Cells(15,13).Value = vehicle_10
+		ObjDriverSheet2.Cells(15,14).Value = vehicle_20
+		ObjDriverSheet2.Cells(15,15).Value = vehicle_40
+		ObjDriverSheet2.Cells(15,16).Value = vehicle_100
+		
+		Objexcel2.Application.Quit
+		
+		ObjWorkbook1.Save
+		objExcel1.Application.Quit
+		
+	
+	end sub
+	
+	
+	
+	sub showVies_old(id)	
+	
+		Dim lstFirstNode
+		Dim lstSecondNode
+		Dim Distance  	'distance value
+		Dim firstPrt , lstFirstPrt
+		Dim secondPrt, lstSecondPrt
+		Dim status
+		Dim tempDist	
+		Dim	module, subModule		
+		Dim fScore	
+		
+		<!-- msgbox id -->
+		set lstFirstNode = gView.CreateNodeList
+		set lstSecondNode = gView.CreateNodeList
+		
+		set gMeasureManager = gView.MeasurementManager		'Measurment Manager
+		gMeasureManager.DeleteAllMeasurements				'Delete existing measurments
+		Dim Objexcel, ObjWorkbook, ObjDriverSheet, Fieldvalue, Rowcount	, ColumnCount			
+		
+		if instr(id,"&") then
+			Dim partNumber
+			partNumber = Split(id,"&")
+			
+			firstPrt = Trim(partNumber(0))
+			secondPrt = Trim(partNumber(1))
+			msgbox firstPrt &"---"&secondPrt
+		else 
+			set Objexcel = Createobject("Excel.Application")
+			
+			
+			Set ObjWorkbook = ObjExcel.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\RuleBook_CV_vf.xlsx")
+			
+			Set ObjDriverSheet = ObjWorkbook.Worksheets(1)	
+			ColumnCount = ObjDriverSheet.Usedrange.Columns.Count
+			Rowcount = ObjDriverSheet.Usedrange.Rows.Count
+			
+			for ij = 2 to rowCount
+				
+				if Objdriversheet.Cells(ij,1) = id then 
+					firstPrt = Objdriversheet.Cells(ij,15)					
+					firstPrt = Trim(firstPrt)				
+					secondPrt = Objdriversheet.Cells(ij,16)
+					secondPrt = Trim(secondPrt)						
+					objExcel.Application.Quit
+					Exit For
+				end if		
+			Next
+			Objexcel.Quit
+		end if 
+		if Not IsEmpty(firstPrt) AND Not IsEmpty(secondPrt) Then	
+			if Instr(firstPrt,"&") then 			
+				lstFirstPrt = Split(firstPrt,"&")					
+			else					
+				lstFirstPrt = Array(firstPrt)
+			end if
+			if Instr(secondPrt,"&") then 			
+				lstSecondPrt = Split(secondPrt,"&")					
+			else					
+				lstSecondPrt = Array(secondPrt)
+			end if
+			gView.AllNodesOff								
+			if Not(Ubound(lstFirstPrt)=-1) AND Not (Ubound(lstSecondPrt)=-1) Then	
+				set gNodes = gView.LoadedNodes				
+				for il = 0 to Ubound(lstFirstPrt)
+					for ij = 0 to Ubound(lstSecondPrt)
+						Dim FirstNode 
+						Dim SecondNode
+						for kk=0 to (gNodes.NumNodes-1)
+							if (gNodes.Node(kk).IsPart) then					
+								if Instr(gNodes.Node(kk).PrintableName,Trim(lstFirstPrt(il))) Then														
+									set FirstNode = gNodes.Node(kk)
+									FirstNode.Visible = true
+									lstFirstNode.AppendNode FirstNode
+								
+								elseif Instr(gNodes.Node(kk).PrintableName,Trim(lstSecondPrt(ij))) Then									
+									set SecondNode = gNodes.Node(kk)
+									SecondNode.Visible = true									
+									lstSecondNode.AppendNode SecondNode							
+								end if	
+									
+							end if
+						Next						
+							Set Measurement = gMeasureManager.MeasureSetDistance(lstFirstNode, lstSecondNode)														
+					Next					
+				Next			
+				
+			End if
+		End if		
+		CreateImage "Current View",lstFirstNode, lstSecondNode, id
+		gView.FitAll
+	end sub
+	
+	sub showVies(modules)
+	
+				'MsgBox root_node_print_name
+		Connect_Vis()		
+		
+		Dim lstFirstNode
+		Dim lstSecondNode
+		dim RClearance
+		Dim Distance  	'distance value
+		Dim firstPrt , lstFirstPrt
+		Dim secondPrt, lstSecondPrt
+		Dim first_prt_module, second_prt_module
+		Dim status
+		Dim tempDist	
+		Dim	module, subModule
+		Dim description
+		Dim fScore
+		Dim assmeblyNodeMeasure, mixModule
+		Dim nodelist1, nodelist2
+		Dim Execution_Type
+		Dim i
+		Dim RequiredClr
+		Dim all_node_in_view
+		Dim prt_one_found
+		Dim prt_two_found
+		Dim prt_one_found_child
+		Dim prt_two_found_child
+		Dim prt_two_ass_node_child
+		'Dim Distance
+		Dim Measurement
+		Dim module_one_sub_list_All
+		Dim module_two_sub_list_All
+		'Dim single_snap
+		
+		Dim b1
+		Dim n_X
+		Dim n_Y
+		Dim n_Z
+		
+		
+		Dim assmebly_one_NodeMeasure
+		Dim assmebly_two_NodeMeasure
+		
+		assmebly_one_NodeMeasure = false
+		assmebly_two_NodeMeasure = false
+		
+		set gNodes = gAssemblyNodes
+	
+		'msgbox root_node_child.NumNodes
+		
+		i = 0
+		
+		status = "-"
+		ruleID = Split(modules,"`")(0)
+		'MsgBox ruleID
+		module = Split(modules,"`")(1)
+		subModule = Split(modules,"`")(2)
+		
+		set lstFirstNode = gView.CreateNodeList
+		set lstSecondNode = gView.CreateNodeList
+		
+		set module_one_sub_list_All = gView.CreateNodeList
+		set module_two_sub_list_All = gView.CreateNodeList
+		
+		set gMeasureManager = gView.MeasurementManager		'Measurment Manager
+		gMeasureManager.DeleteAllMeasurements				'Delete existing measurments
+		Dim Objexcel, ObjWorkbook, ObjDriverSheet, Fieldvalue, Rowcount	, ColumnCount			
+		
+		set Objexcel = Createobject("Excel.Application")
+		
+		
+		Set ObjWorkbook = ObjExcel.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\RuleBook_CV_vf.xlsx")
+		
+		Set ObjDriverSheet = ObjWorkbook.Worksheets(1)	
+		ColumnCount = ObjDriverSheet.Usedrange.Columns.Count
+		Rowcount = ObjDriverSheet.Usedrange.Rows.Count
+		
+		set measurement_manager = gView.MeasurementManager
+		
+		for ij = 2 to rowCount
+			
+			'Execution_Type =  Objdriversheet.Cells(ij,21)
+			
+			if Objdriversheet.Cells(ij,1) = ruleID then
+			
+				firstPrt = Objdriversheet.Cells(ij,15)
+				first_prt_module = Trim(Objdriversheet.Cells(ij,10))
+				
+				if firstPrt <> "" then
+				
+					firstPrt = check_for_available_part(first_prt_module,firstPrt)
+				
+				End if
+				
+				if firstPrt = "" then
+				
+					firstPrt = Objdriversheet.Cells(ij,10)
+					assmebly_one_NodeMeasure = true
+	
+				end if
+				
+				firstPrt = Trim(firstPrt)
+				
+				secondPrt = Objdriversheet.Cells(ij,16)
+				second_prt_module = Trim(Objdriversheet.Cells(ij,11))
+				
+				if secondPrt <> "" then
+				
+					secondPrt = check_for_available_part(second_prt_module,secondPrt)
+
+				End if
+				
+				if secondPrt = "" then 
+					secondPrt = Objdriversheet.Cells(ij,11)	
+					assmebly_two_NodeMeasure = true
+				end if
+				
+				secondPrt = Trim(secondPrt)
+				
+				If IsEmpty(Objdriversheet.Cells(ij, 19)) Then
+					RequiredClr = Objdriversheet.Cells(ij,20)
+				Else
+					RequiredClr = Objdriversheet.Cells(ij,19)
+				End If
+				
+				RClearance = Split(RequiredClr," ")(1)
+
+				description = Objdriversheet.Cells(ij,14)
+				
+				Execution_Type =  Objdriversheet.Cells(ij,21)
+				
+				
+				'msgbox "part 1" & " " &firstPrt
+				'msgbox "part 2" & " " &secondPrt
+				
+				Exit For
+			
+			end if
+			
+		Next
+		
+		objExcel.Application.Quit
+		
+		
+		if Not IsEmpty(firstPrt) AND Not IsEmpty(secondPrt) Then
+			
+			for a = 0 to (gNodes.NumNodes-1)
+			
+				if Instr(gNodes.Node(a).PrintableName,first_prt_module) AND Instr(gNodes.Node(a).PrintableName,"-geom") = 0 Then
+				
+					set node1_all_prop = gNodes.Node(a).MetaDataProperties
+					
+					for kkkk = 0 to (node1_all_prop.NumProperties-1)
+					
+						Dim ProName, ProVal 
+						Set ProName = Nothing
+						Set ProVal = Nothing
+					
+						Call node1_all_prop.GetProperty(kkkk, ProName, ProVal)
+						
+						if Instr(ProName,"PartType") then
+						
+			
+							if (ProVal = "Module") then
+							
+								gView.DeSelectAllNodes
+								gNodes.Node(a).Selected = True
+								
+								Call gView.Find(3, 2, "Name",2,"*", "", mod_one_get_child)
+								
+								for jjj = 0 to (mod_one_get_child.NumNodes-1)
+										
+									module_one_sub_list_All.appendNode mod_one_get_child.Node(jjj)
+									
+								next
+							
+							end if
+							
+						
+						end if
+					
+					next
+				
+				
+				end if
+			
+			next
+			
+			for a = 0 to (gNodes.NumNodes-1)
+			
+				if Instr(gNodes.Node(a).PrintableName,second_prt_module) AND Instr(gNodes.Node(a).PrintableName,"-geom") = 0 Then
+				
+				
+					set node2_all_prop = gNodes.Node(a).MetaDataProperties
+					
+					for jjjj = 0 to (node2_all_prop.NumProperties-1)
+					
+						Dim ProName1, ProVal1 
+						Set ProName1 = Nothing
+						Set ProVal1 = Nothing
+					
+						Call node2_all_prop.GetProperty(jjjj, ProName1, ProVal1)
+						
+						if Instr(ProName1,"PartType") then
+						
+							
+							if (ProVal1 = "Module") then
+								
+								gView.DeSelectAllNodes
+								gNodes.Node(a).Selected = True
+								
+								Call gView.Find(3, 2, "Name",2,"*", "", mod_two_get_child)
+								
+								for jjj = 0 to (mod_two_get_child.NumNodes-1)
+										
+									module_two_sub_list_All.appendNode mod_two_get_child.Node(jjj)
+									
+								next
+							
+							end if
+							
+						
+						end if
+					
+					next
+				
+				
+				end if
+			
+			next
+			
+
+			if (assmebly_one_NodeMeasure) then
+				
+				Call gView.FindInList(module_one_sub_list_All,0,"Name", 2, "*", "", out_first_ChildNodeList)
+				
+				for i = 0 to out_first_ChildNodeList.NumNodes-1
+
+					if (out_first_ChildNodeList.Node(i).IsPart) AND (out_first_ChildNodeList.Node(i).isLoaded) AND Instr(out_first_ChildNodeList.Node(i).PrintableName,"-geom") = 0 then
+									
+						b1 = out_first_ChildNodeList.Node(i).BBox
+						n_X = b1(0) + b1(3)
+						n_Y = b1(1) + b1(4)
+						n_Z = b1(2) + b1(5)
+						
+						if Not(n_X = 0) OR Not(n_Y = 0) OR Not(n_Z = 0) then
+						
+							if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+							
+								lstFirstNode.appendNode out_first_ChildNodeList.Node(i)
+							
+							end if
+						
+						end if
+					
+					end if
+					
+				Next
+			
+			else
+			
+				for b = 0 to (module_one_sub_list_All.NumNodes-1)
+				
+					if Instr(module_one_sub_list_All.Node(b).PrintableName,firstPrt) AND Instr(module_one_sub_list_All.Node(b).PrintableName,"-geom") = 0 Then
+					
+						
+						'if (module_one_sub_list_All.Node(b).IsPart) AND (module_one_sub_list_All.Node(b).isLoaded) AND Instr(module_one_sub_list_All.Node(b).PrintableName,"-geom") = 0 then
+						if (module_one_sub_list_All.Node(b).IsPart) AND (module_one_sub_list_All.Node(b).isLoaded) then
+							
+							b1 = module_one_sub_list_All.Node(b).BBox
+							n_X = b1(0) + b1(3)
+							n_Y = b1(1) + b1(4)
+							n_Z = b1(2) + b1(5)
+							
+							
+							if Not(n_X = 0) OR Not(n_Y = 0) OR Not(n_Z = 0) then
+							
+								if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+							
+									lstFirstNode.appendNode module_one_sub_list_All.Node(b)
+								
+								end if
+							
+							end if
+							
+						else
+							
+							if (module_one_sub_list_All.Node(b).isLoaded) then
+							
+								set prt_one_found = module_one_sub_list_All.Node(b)
+								set prt_one_found_child = prt_one_found.Children
+								Call gView.FindInList(prt_one_found_child,0,"Name", 2, "*", "", out_first_ChildNodeList)
+														
+								for i = 0 to out_first_ChildNodeList.NumNodes-1
+														
+									'if (out_first_ChildNodeList.Node(i).isLoaded) AND (out_first_ChildNodeList.Node(i).IsPart) AND Instr(out_first_ChildNodeList.Node(i).PrintableName,"-geom") = 0 then
+									if (out_first_ChildNodeList.Node(i).isLoaded) AND (out_first_ChildNodeList.Node(i).IsPart) then
+																		
+										b1 = out_first_ChildNodeList.Node(i).BBox
+										n_X = b1(0) + b1(3)
+										n_Y = b1(1) + b1(4)
+										n_Z = b1(2) + b1(5)
+										
+										if Not(n_X = 0) OR Not(n_Y = 0) OR Not(n_Z = 0) then
+										
+											if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+										
+												lstFirstNode.appendNode out_first_ChildNodeList.Node(i)
+											
+											end if
+										
+										end if
+									
+									end if
+														
+								Next
+							
+							end if
+							
+						end if
+												
+					end if
+				
+				next
+				
+			end if
+			
+			
+			if (assmebly_two_NodeMeasure) then
+			
+				Call gView.FindInList(module_two_sub_list_All,0,"Name", 2, "*", "", out_second_ChildNodeList)
+				
+				for i = 0 to out_second_ChildNodeList.NumNodes-1
+					
+					if (out_second_ChildNodeList.Node(i).IsPart) AND (out_second_ChildNodeList.Node(i).isLoaded) AND Instr(out_second_ChildNodeList.Node(i).PrintableName,"-geom") = 0 then
+						
+						b1 = out_second_ChildNodeList.Node(i).BBox
+						n_X = b1(0) + b1(3)
+						n_Y = b1(1) + b1(4)
+						n_Z = b1(2) + b1(5)
+						
+						
+						if Not(n_X = 0) OR Not(n_Y = 0) OR Not(n_Z = 0) then
+						
+							if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+						
+								lstSecondNode.appendNode out_second_ChildNodeList.Node(i)
+							
+							end if
+						
+						end if
+					
+					end if
+					
+				Next
+			
+			else
+			
+				for b = 0 to (module_two_sub_list_All.NumNodes-1)
+				
+					if Instr(module_two_sub_list_All.Node(b).PrintableName,secondPrt) AND Instr(module_two_sub_list_All.Node(b).PrintableName,"-geom") = 0 Then
+						
+						'if (module_two_sub_list_All.Node(b).IsPart) AND (module_two_sub_list_All.Node(b).isLoaded) AND Instr(module_two_sub_list_All.Node(b).PrintableName,"-geom") = 0 then
+						if (module_two_sub_list_All.Node(b).IsPart) AND (module_two_sub_list_All.Node(b).isLoaded) then
+					
+							b1 = module_two_sub_list_All.Node(b).BBox
+							n_X = b1(0) + b1(3)
+							n_Y = b1(1) + b1(4)
+							n_Z = b1(2) + b1(5)
+							
+							if Not(n_X = 0) OR Not(n_Y = 0) OR Not(n_Z = 0) then
+							
+								if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+								
+									lstSecondNode.appendNode module_two_sub_list_All.Node(b)
+								
+								end if
+							
+							end if
+						
+							
+						else
+							
+							if (module_two_sub_list_All.Node(b).isLoaded) then
+							
+								set prt_two_found = module_two_sub_list_All.Node(b)
+								set prt_two_ass_node_child = prt_two_found.Children
+								
+								Call gView.FindInList(prt_two_ass_node_child,0,"Name", 2, "*", "", out_second_ChildNodeList)
+								
+								for i = 0 to out_second_ChildNodeList.NumNodes-1
+									
+									'if (out_second_ChildNodeList.Node(i).isLoaded) AND (out_second_ChildNodeList.Node(i).IsPart) AND Instr(out_second_ChildNodeList.Node(i).PrintableName,"-geom") = 0 then
+									if (out_second_ChildNodeList.Node(i).isLoaded) AND (out_second_ChildNodeList.Node(i).IsPart) then
+		
+										b1 = out_second_ChildNodeList.Node(i).BBox
+										n_X = b1(0) + b1(3)
+										n_Y = b1(1) + b1(4)
+										n_Z = b1(2) + b1(5)
+										
+										
+										
+										if Not(n_X = 0) OR Not(n_Y = 0) OR Not(n_Z = 0) then
+										
+											if Not((Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) <> 0) Or (Abs(b1(3) - b1(0)) = 0 And Abs(b1(4) - b1(1)) <> 0 And Abs(b1(5) - b1(2)) = 0) Or (Abs(b1(3) - b1(0)) <> 0 And Abs(b1(4) - b1(1)) = 0 And Abs(b1(5) - b1(2)) = 0)) Then
+													
+												lstSecondNode.appendNode out_second_ChildNodeList.Node(i)
+												
+											end if
+										
+										end if
+									
+									end if
+									
+								Next
+							
+							end if
+						
+						end if
+						
+						
+					end if
+				
+				next
+			
+			end if
+			
+			'msgbox "first part node list " &lstFirstNode.NumNodes
+			'msgbox "second part node list " &lstSecondNode.NumNodes
+			
+			
+			if(Execution_Type = "Automatic") then
+			
+
+				Set Measurement = measurement_manager.MeasureSetDistance(lstFirstNode, lstSecondNode)
+
+				Distance = Measurement.Distance
+	
+				RClearance = Replace(RClearance,"mm","")
+			
+				if not (RClearance = "-") then
+				
+					If CDbl(Distance)>CDbl(RClearance) Then
+					
+						status = "Pass"
+						tempDist = Round(Distance,2) &" mm"
+						
+						fScore = 0
+						
+					else
+					
+						status = "Fail"
+						tempDist = Round(Distance,2) &" mm"
+						
+						fScore = checkScore(tempDist, RClearance)
+						
+					end if
+				else 
+					tempDist = Round(Distance,2) &" mm"
+				end if
+				
+
+				'Call addSummary(ruleID, RequiredClr, status, tempDist,fScore,module&"-"&subModule,1,0,root_node_print_name)
+				Call CreateImage("Current View",lstFirstNode, lstSecondNode, ruleID)
+				
+				Interfering_modules =  Split(modules,"`")(1) &"-" &  Split(modules,"`")(2)
+				setCamera = MsgBox("Do you want to Capture Custom View ?", vbYesNo + vbQuestion, "Camera Setup")
+				
+				If setCamera = vbYes Then
+					'msgbox "In Module"
+					call adjustView(ruleID,Interfering_modules,description) 
+				end if
+					
+
+			else
+			
+				gView.AllNodesOff	
+									
+				for io=0 to lstFirstNode.NumNodes-1										
+					lstFirstNode.Node(io).Visible = true
+				Next
+				for kj = 0 to lstSecondNode.NumNodes-1
+					lstSecondNode.Node(kj).Visible = true
+				Next
+				Interfering_modules =  Split(modules,"`")(1) &"-" &  Split(modules,"`")(2)
+				call mannual_semi(ruleID,Interfering_modules,description, RequiredClr)
+			
+			end if
+		
+		end if
+	
+	end sub
+	
+	
+	
+	sub showVies_sample(viewname)
+	
+		'msgbox viewname
+	
+		Connect_Vis()		
+		
+		Dim lstFirstNode
+		Dim lstSecondNode
+		dim RClearance
+		Dim Distance  	'distance value
+		Dim firstPrt , lstFirstPrt
+		Dim secondPrt, lstSecondPrt
+		Dim first_prt_module, second_prt_module
+		Dim status
+		Dim tempDist	
+		Dim	module, subModule
+		Dim description
+		Dim fScore
+		Dim assmeblyNodeMeasure, mixModule
+		Dim nodelist1, nodelist2
+		Dim Execution_Type
+		Dim i
+		Dim RequiredClr
+		Dim all_node_in_view
+		
+		i = 0
+		status = "-"
+		ruleID = Split(viewname,"`")(0)
+		module = Split(viewname,"`")(1)	
+		subModule = Split(viewname,"`")(2)
+		
+		set lstFirstNode = gView.CreateNodeList
+		set lstSecondNode = gView.CreateNodeList
+		
+		set gMeasureManager = gView.MeasurementManager		'Measurment Manager
+		gMeasureManager.DeleteAllMeasurements				'Delete existing measurments
+		Dim Objexcel, ObjWorkbook, ObjDriverSheet, Fieldvalue, Rowcount	, ColumnCount			
+		
+		set Objexcel = Createobject("Excel.Application")
+		Set ObjWorkbook = ObjExcel.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\RuleBook_CV_vf.xlsx")
+		
+		Set ObjDriverSheet = ObjWorkbook.Worksheets(1)	
+		ColumnCount = ObjDriverSheet.Usedrange.Columns.Count
+		Rowcount = ObjDriverSheet.Usedrange.Rows.Count
+		
+		for ij = 2 to rowCount
+			Execution_Type =  Objdriversheet.Cells(ij,21)	
+			if Objdriversheet.Cells(ij,1) = ruleID then 
+			
+				firstPrt = Objdriversheet.Cells(ij,15)
+				first_prt_module = Trim(Objdriversheet.Cells(ij,10))
+				
+				if firstPrt <> "" then
+				
+					firstPrt = check_for_available_part(first_prt_module,firstPrt)
+					'msgbox "Inside non empty part" & firstPrt
+				
+				End if
+				
+				if firstPrt = "" then
+				
+					firstPrt = Objdriversheet.Cells(ij,10)	
+					assmeblyNodeMeasure = true
+	
+				end if
+				
+				firstPrt = Trim(firstPrt)
+				secondPrt = Objdriversheet.Cells(ij,16)
+				second_prt_module = Trim(Objdriversheet.Cells(ij,11))
+				
+				if secondPrt <> "" then
+				
+					secondPrt = check_for_available_part(second_prt_module,secondPrt)
+					'msgbox "inside non empty part 2 " & secondPrt
+					
+					if (assmeblyNodeMeasure = true) then
+						assmeblyNodeMeasure = false
+						mixModule = true
+						
+						'msgbox "inside mix module"
+						
+					end if
+				
+				End if
+				
+				if secondPrt = "" then 
+					secondPrt = Objdriversheet.Cells(ij,11)	
+				end if			
+				secondPrt = Trim(secondPrt)			
+				If IsEmpty(Objdriversheet.Cells(ij, 19)) Then
+					RequiredClr = Objdriversheet.Cells(ij,20)
+				Else
+					RequiredClr = Objdriversheet.Cells(ij,19)
+				End If
+				RClearance = Split(RequiredClr," ")(1)
+				description = Objdriversheet.Cells(ij,14)
+				Exit For
+			end if		
+		Next
+		
+		if Not IsEmpty(firstPrt) AND Not IsEmpty(secondPrt) Then	
+			if Instr(firstPrt,"&") then 			
+				lstFirstPrt = Split(firstPrt,"&")					
+			else					
+				lstFirstPrt = Array(firstPrt)
+			end if
+			if Instr(secondPrt,"&") then 			
+				lstSecondPrt = Split(secondPrt,"&")					
+			else					
+				lstSecondPrt = Array(secondPrt)
+			end if
+			
+			if Not(Ubound(lstFirstPrt)=-1) AND Not (Ubound(lstSecondPrt)=-1) Then	
+				set gNodes = gView.LoadedNodes	
+				set gNodesVisible = gAssemblyNodes
+				for il = 0 to Ubound(lstFirstPrt)
+					for ij = 0 to Ubound(lstSecondPrt)
+						Dim FirstNode  
+						Dim SecondNode
+						set lstNode1 = gView.CreateNodeList
+						set lstNode2 = gView.CreateNodeList
+						Dim lastChild, outChildNodeList
+						if assmeblyNodeMeasure then
+							for kk=0 to (gNodesVisible.NumNodes-1)	
+								if Instr(gNodesVisible.Node(kk).PrintableName,Trim(lstFirstPrt(il))) Then
+												'msgbox gNodesVisible.Node(kk).PrintableName		
+									set FirstNode = gNodesVisible.Node(kk)	
+					
+									Set childNodeList = FirstNode.Children
+									Call gView.FindInList(childNodeList,0,"Name", 2, "*", "", outChildNodeList)		
+									
+									
+									for i = 0 to outChildNodeList.NumNodes-1
+										lstFirstNode.appendNode outChildNodeList.Node(i)
+										lstNode1.appendNode outChildNodeList.Node(i)
+									Next
+						
+								end if
+							Next
+							for kk=0 to (gNodesVisible.NumNodes-1)	
+								if Instr(gNodesVisible.Node(kk).PrintableName,Trim(lstSecondPrt(ij))) Then									
+									set SecondNode = gNodesVisible.Node(kk)	
+							
+									Set childNodeList = SecondNode.Children
+									Call gView.FindInList(childNodeList,0,"Name", 2, "*", "", outChildNodeList)		
+									
+									for j = 0 to childNodeList.NumNodes-1
+										lstSecondNode.appendNode childNodeList.Node(j)
+										lstNode2.appendNode outChildNodeList.Node(j)
+									Next								
+								end if
+							Next
+						elseif mixModule then						
+							for kk=0 to (gNodesVisible.NumNodes-1)	
+								if Instr(gNodesVisible.Node(kk).PrintableName,Trim(lstFirstPrt(il))) Then
+									if Instr(gNodesVisible.Node(kk).PrintableName,"-geom") then
+									else									
+											set FirstNode = gNodesVisible.Node(kk)											
+											Set childNodeList = FirstNode.Children
+											Call gView.FindInList(childNodeList,0,"Name", 2, "*", "", outChildNodeList)													
+											for i = 0 to outChildNodeList.NumNodes-1
+												lstFirstNode.appendNode outChildNodeList.Node(i)
+												lstNode1.appendNode outChildNodeList.Node(i)
+											Next
+									end if
+								end if
+							Next
+							
+							Call gView.Find(0, 2, "Name",2,"*", "", trial_node_list)
+							
+							for kk=0 to (trial_node_list.NumNodes-1)
+								if Not Instr(trial_node_list.Node(kk).PrintableName,"-geom") then							
+									if Instr(trial_node_list.Node(kk).PrintableName,Trim(lstSecondPrt(ij))) Then									
+										set SecondNode = trial_node_list.Node(kk)		
+										lstSecondNode.AppendNode SecondNode	
+										lstNode2.AppendNode SecondNode							
+									end if	
+								end if
+							Next
+						else 
+							for kk=0 to (gNodes.NumNodes-1)	
+								if (gNodes.Node(kk).IsPart) then									
+										dim prent1, parent2
+											if Instr(gNodes.Node(kk).PrintableName,Trim(lstFirstPrt(il))) Then
+												set FirstNode = gNodes.Node(kk)	
+												lstNode1.AppendNode FirstNode
+												lstFirstNode.AppendNode FirstNode
+											end if																	
+											if Instr(gNodes.Node(kk).PrintableName,Trim(lstSecondPrt(ij))) Then	
+													set SecondNode = gNodes.Node(kk)	
+													lstNode2.AppendNode SecondNode
+													lstSecondNode.AppendNode SecondNode													
+											end if																											
+								end if							
+							Next
+						end if
+						if assmeblyNodeMeasure then 							
+							Dim gResultList
+							Dim gNodeList1, gNodeList2							
+							set gNodeList1 = gView.CreateNodeList
+							set gNodeList2 = gView.CreateNodeList										
+							gNodeList1.AppendNode FirstNode
+							gNodeList2.AppendNode SecondNode							
+							Set gClearanceManager = gView.ClearanceManager
+							gClearanceManager.GenerateImages = False
+							RClearance = Replace(RClearance,"mm","")					
+							gClearanceManager.ClearanceRequirement = CDbl(RClearance) * .001  								
+							gClearanceManager.ContactTolerance = 1
+							gClearanceManager.UsePrecise = True     'Use NURBS
+
+							Set gResultList = gClearanceManager.GroupClearance(gNodeList1, gNodeList2)
+							
+							Dim CurResult
+							Dim ColNames
+							Dim TypeCol
+							Dim ValueCol
+							Dim Data
+							Dim interParts
+							Dim acClearance
+							Dim rClernce
+							
+							TypeCol = 0
+							ValueCol = 3
+							numberCol = 0
+							
+							ColNames = gResultList.ColumnNames
+							For i = LBound(ColNames) To UBound(ColNames)								
+								If ColNames(i) = "Type" Then
+									TypeCol = i
+								ElseIf ColNames(i) = "Result" Then
+									ValueCol = i
+								ElseIf ColNames(i) = "Number" Then
+									numberCol = i					
+								End If			
+							Next							
+							if Not gResultList.NumResults=0 then 
+							
+								For j = 0 To gResultList.NumResults - 1	
+									fScore = 40	
+									Set CurResult = gResultList.Result(j)
+									Data = CurResult.Data
+									If InStr(Data(3),"~")  Then
+										length = Len(Data(3))
+										Data(3) = Mid(Data(3), 2, length)							
+										Data(3) = CDbl(LTrim(Data(3)))
+										Data(3) = FormatNumber(Data(3),2)
+									End If										
+									<!-- msgbox Data(ValueCol) -->
+									rClernce = Data(ValueCol)
+									if (rClernce = 0) OR (rClernce<0) then 
+										fScore = 100												
+									end if
+								next
+																
+								For j = 0 To gResultList.NumResults - 1								
+									Set CurResult = gResultList.Result(j)
+									Data = CurResult.Data				
+									interParts = ""
+									acClearance = ""
+									Dim key
+									key =  CurResult.NodeOne.PrintableName&"_"&CurResult.NodeTwo.PrintableName  '&"_"&Data(ValueCol)
+										Dim length
+										If InStr(Data(3),"~")  Then
+												length = Len(Data(3))
+												Data(3) = Mid(Data(3), 2, length)							
+												Data(3) = CDbl(LTrim(Data(3)))
+												Data(3) = FormatNumber(Data(3),2)
+												'MsgBox "Clearance::" & Data(3)
+										End If					
+											fScore = 40	
+												interParts = Split(CurResult.NodeOne.PrintableName,"/")(0) &" & "& Split(CurResult.NodeTwo.PrintableName,"/")(0)												
+												acClearance = Data(ValueCol)/1000								
+								            Next
+								        else							     
+							end if						
+						else
+							if isEmpty(FirstNode) OR IsEmpty(SecondNode) Then
+							
+							else
+								if(Execution_Type = "Automatic") then
+									status = "Pass"																
+									Set Measurement = gMeasureManager.MeasureSetDistance(lstNode1, lstNode2)									
+									Distance = (Measurement.Distance)
+									RClearance = Replace(RClearance,"mm","")									
+									if not (RClearance = "-") then 										
+										If CDbl(Distance)>CDbl(RClearance) Then
+										status = "Pass"
+											if isEmpty(tempDist) then 
+												tempDist = Round(Distance,2) &" mm"
+											else
+												tempDist = tempDist & " / " & Round(Distance,2) & " mm"
+											End if 
+											
+										else
+											
+											status = "Fail"
+											if isEmpty(tempDist) then 
+												tempDist = Round(Distance,2) &" mm"
+												'msgbox tempDist
+											else
+												tempDist = tempDist & " / " & Round(Distance,2) & " mm"
+											End if 
+										
+											'call setresult(modules,status, Distance)
+										end if
+									else 
+										tempDist = Round(Distance,2) &" mm"
+									end if
+								
+								end if								
+							end if
+						end if						
+					Next					
+				Next	
+			End if
+			'msgbox "Hi"
+			if Not (tempDist = "") then	
+					Call CreateImage("Current View", lstFirstNode, lstSecondNode, ruleID)
+			end if
+		End if		
+		Interfering_modules =  Split(viewname,"`")(1) &"-" &  Split(viewname,"`")(2)
+		objExcel.Application.Quit
+		DisconnetManager()
+		document.getElementById("defaultOpen").click()
+		
+		setCamera = MsgBox("Do you want to Capture Custom View ?", vbYesNo + vbQuestion, "Camera Setup")
+		
+		If setCamera = vbYes Then
+			'msgbox "In Module"
+			call adjustView(ruleID,Interfering_modules,description) 
+		end if
+		
+	end sub
+	
+	sub Validate_all_submodules_old()
+	
+		Dim get_all_assemblies
+		Dim applicable_sub_list
+		'Dim unapplicable_sub_list
+		Dim complete_list
+		Dim uniqueDict
+		Dim uniqueDict_al
+		Dim unique_complete_list
+		'Dim unique_applicable_sub_list
+		Dim sort_ul
+		
+		
+		Call gView.Find(0, 1, "Name",2,"*", "", ass_nodes)
+		set get_all_assemblies = ass_nodes
+		
+		'msgbox get_all_assemblies.NumNodes
+		
+		
+		Dim Objexcel_val, ObjWorkbook_val, ObjDriverSheet_val, Fieldvalue_val, Rowcount_val	, ColumnCount_val
+		
+		set Objexcel_val = Createobject("Excel.Application")
+		Set ObjWorkbook_val = Objexcel_val.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\RuleBook_CV_vf.xlsx")	'address of rule file
+		
+		Set ObjDriverSheet_val = ObjWorkbook_val.Worksheets(1)	
+		ColumnCount_val = ObjDriverSheet_val.Usedrange.Columns.Count
+		Rowcount_val = ObjDriverSheet_val.Usedrange.Rows.Count
+		
+		'msgbox Rowcount_val
+		
+		Set applicable_sub_list = CreateObject("System.Collections.ArrayList")
+		Set unapplicable_sub_list = CreateObject("System.Collections.ArrayList")
+		Set complete_list = CreateObject("System.Collections.ArrayList")
+		Set unique_complete_list = CreateObject("System.Collections.ArrayList")
+		Set unique_applicable_sub_list = CreateObject("System.Collections.ArrayList")
+		
+		Set uniqueDict = CreateObject("Scripting.Dictionary")
+		Set uniqueDict_al = CreateObject("Scripting.Dictionary")
+		
+		For ik = 2 To Rowcount_val
+									
+			md_one = getModuleName(ObjDriverSheet_val.Cells(ik,10))
+
+			md_two = getModuleName(ObjDriverSheet_val.Cells(ik,11))
+			
+			complete_list.Add md_one
+			complete_list.Add md_two
+				
+				
+		Next
+		
+		Objexcel_val.Application.Quit
+
+		For gs = 0 To complete_list.Count - 1
+			If Not uniqueDict.Exists(complete_list(gs)) Then
+				uniqueDict.Add complete_list(gs), True
+				unique_complete_list.Add complete_list(gs)
+			End If
+		Next
+
+		
+		for css = 0 to unique_complete_list.count-1
+			
+			'msgbox unique_complete_list(css)
+			
+			for check_sub = 0 to get_all_assemblies.NumNodes - 1
+				
+				if Instr(get_all_assemblies.Node(check_sub).PrintableName,unique_complete_list(css)) Then
+				
+					applicable_sub_list.Add unique_complete_list(css)
+				
+				end if
+			
+			Next
+			
+			
+		Next
+		
+		For gos = 0 To applicable_sub_list.Count - 1
+			If Not uniqueDict_al.Exists(applicable_sub_list(gos)) Then
+				uniqueDict_al.Add applicable_sub_list(gos), True
+				unique_applicable_sub_list.Add applicable_sub_list(gos)
+			End If
+		Next
+		
+		'msgbox unique_applicable_sub_list.count
+		
+		Set sort_ul = CreateObject("Scripting.Dictionary")
+		
+		For Each ga In unique_applicable_sub_list
+			If Not sort_ul.Exists(ga) Then
+				sort_ul.Add ga, True
+			End If
+		Next
+		
+		For Each wc In unique_complete_list
+			If Not sort_ul.Exists(wc) Then
+				unapplicable_sub_list.Add wc
+			End If
+		Next
+		
+		
+		'msgbox unique_applicable_sub_list.count
+		'msgbox unapplicable_sub_list.count
+		
+		Call style_change()
+		'Call deleteAllTableRows()
+		
+		
+	end sub
+	
+	
+	<!-- -------------------------------------------------------------------------------- -->
+	
+	Sub Validate_all_submodules()
+
+		Dim get_all_assemblies
+		Dim complete_list
+		Dim unique_complete_dict
+		'Dim applicable_sub_dict
+		'Dim unapplicable_sub_dict
+    'Dim desc_design_dict1
+    
+
+		' Initialize dictionaries
+		Set complete_list = CreateObject("Scripting.Dictionary")
+		Set unique_complete_dict = CreateObject("Scripting.Dictionary")
+		Set applicable_sub_dict = CreateObject("Scripting.Dictionary")
+		Set unapplicable_sub_dict = CreateObject("Scripting.Dictionary")
+    'Set desc_design_dict1 = CreateObject("Scripting.Dictionary")
+
+		' Get all assembly nodes
+		Call gView.Find(0, 1, "Name", 2, "*", "", ass_nodes)
+		Set get_all_assemblies = ass_nodes
+
+		' Excel setup
+		Dim Objexcel_val, ObjWorkbook_val, ObjDriverSheet_val, Rowcount_val
+		Set Objexcel_val = CreateObject("Excel.Application")
+		Set ObjWorkbook_val = Objexcel_val.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\RuleBook_CV_vf.xlsx")
+		Set ObjDriverSheet_val = ObjWorkbook_val.Worksheets(1)
+		Rowcount_val = ObjDriverSheet_val.Usedrange.Rows.Count
+
+		' Collect all module names from Excel
+		Dim ik, md_one, md_two
+		For ik = 2 To Rowcount_val
+			md_one = getModuleName(ObjDriverSheet_val.Cells(ik, 10))
+			md_two = getModuleName(ObjDriverSheet_val.Cells(ik, 11))
+
+			If Not complete_list.Exists(md_one) Then complete_list.Add md_one, True
+			If Not complete_list.Exists(md_two) Then complete_list.Add md_two, True
+		Next
+
+		Objexcel_val.Application.Quit
+
+
+		' Now complete_list has all unique module names
+		' Copy to unique_complete_dict for clarity (you can merge this if needed)
+		Dim key
+		For Each key In complete_list.Keys
+			unique_complete_dict.Add key, True
+		Next
+
+		' Check each module in assembly list
+		Dim css, check_sub
+		For Each key In unique_complete_dict.Keys
+			For check_sub = 0 To get_all_assemblies.NumNodes - 1
+				If InStr(get_all_assemblies.Node(check_sub).PrintableName, key) Then
+					If Not applicable_sub_dict.Exists(key) Then
+						applicable_sub_dict.Add key, True
+					End If
+					Exit For
+				End If
+			Next
+		Next
+
+		' Find unapplicable modules
+		For Each key In unique_complete_dict.Keys
+			If Not applicable_sub_dict.Exists(key) Then
+				unapplicable_sub_dict.Add key, True
+			End If
+		Next
+
+		' Show counts
+		'MsgBox "Applicable: " & applicable_sub_dict.Count
+		'MsgBox "Unapplicable: " & unapplicable_sub_dict.Count
+		
+
+		Call style_change()
+		
+		document.getElementById("al_subbb").innerText = "App SubModule (" & applicable_sub_dict.Count & ")"
+		document.getElementById("ul_subbb").innerText = "UN App SubModule (" & unapplicable_sub_dict.Count & ")"
+		
+		MsgBox "Sub Modules Validation completed"
+
+	End Sub
+
+
+	
+	<!-- --------------------------------------------------------------------------------- -->
+	
+Sub show_all_applicable_submodules()
+
+	Call al_deleteAllTableRows()
+	Call hide_other_pages()
+
+	Dim key
+	Dim V_module
+	Dim v_description
+	Dim v_designgroup
+
+	Dim Objexcel_val, ObjWorkbook_val, ObjDriverSheet_val, Rowcount_val
+
+	Set Objexcel_val = CreateObject("Excel.Application")
+	Set ObjWorkbook_val = Objexcel_val.Workbooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\VALIDATED_SUBMODULES.xlsx")
+	Set ObjDriverSheet_val = ObjWorkbook_val.Worksheets(1)
+	Rowcount_val = ObjDriverSheet_val.Usedrange.Rows.Count
+
+	For Each key In applicable_sub_dict.Keys
+		For ik = 2 To Rowcount_val
+			V_module = Trim(ObjDriverSheet_val.Cells(ik, 1))
+
+			If (key = V_module) Then
+				v_description = ObjDriverSheet_val.Cells(ik, 2)
+				v_designgroup = ObjDriverSheet_val.Cells(ik, 3)
+
+				Call show_app_sub(V_module, v_description, v_designgroup)
+				Exit For
+			End If
+		Next
+	Next
+
+	Objexcel_val.Application.Quit
+
+End Sub
+
+		
+	
+
+	
+Sub show_all_unapplicable_submodules()
+
+	Call ul_deleteAllTableRows()
+	Call hide_all_al_pages()
+
+	If (unapplicable_sub_dict.count > 0) Then
+
+		'Call hide_all_al_pages()
+
+		Dim key
+		Dim v_module
+		Dim v_description
+		Dim v_designgroup
+
+		Dim Objexcel_val, ObjWorkbook_val, ObjDriverSheet_val, Rowcount_val
+
+		Set Objexcel_val = CreateObject("Excel.Application")
+		Set ObjWorkbook_val = Objexcel_val.Workbooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\VALIDATED_SUBMODULES.xlsx")
+		Set ObjDriverSheet_val = ObjWorkbook_val.Worksheets(1)
+		Rowcount_val = ObjDriverSheet_val.Usedrange.Rows.Count
+
+		For Each key In unapplicable_sub_dict.Keys
+			For ik = 2 To Rowcount_val
+				v_module = Trim(ObjDriverSheet_val.Cells(ik, 1))
+
+				If (key = v_module) Then
+					v_description = ObjDriverSheet_val.Cells(ik, 2)
+					v_designgroup = ObjDriverSheet_val.Cells(ik, 3)
+
+					Call show_unapp_sub(v_module, v_description, v_designgroup)
+					Exit For
+				End If
+			Next
+		Next
+
+		Objexcel_val.Application.Quit
+
+	
+	End If
+
+End Sub
+	
+	sub demerit_score()
+       
+        dim table
+        set table = document.getElementById("summary_table")
+        Dim tableRow
+        Dim tableCol, imgName
+       
+        dim chassis_10, chassis_20, chassis_40, chassis_100
+        dim powertrain_10, powertrain_20, powertrain_40, powertrain_100
+        dim ee_10, ee_20, ee_40, ee_100
+        dim cab_10, cab_20, cab_40, cab_100
+        dim appengine_10, appengine_20, appengine_40, appengine_100
+        dim vehicle_10, vehicle_20, vehicle_40, vehicle_100
+       
+        chassis_10 = 0 : chassis_20 = 0 : chassis_40 = 0 : chassis_100 = 0
+        powertrain_10 = 0 : powertrain_20 = 0 : powertrain_40 = 0 : powertrain_100 = 0
+        ee_10 = 0 : ee_20 = 0 : ee_40 = 0 : ee_100 = 0
+        cab_10 = 0 : cab_20 = 0 : cab_40 = 0 : cab_100 = 0
+        appengine_10 = 0 : appengine_20 = 0 : appengine_40 = 0 : appengine_100 = 0
+        vehicle_10 = 0 : vehicle_20 = 0 : vehicle_40 = 0 : vehicle_100 = 0
+       
+        Dim Objexcel2, ObjWorkbook, ObjDriverSheet, Fieldvalue, Rowcount    , ColumnCount
+        set Objexcel2 = Createobject("Excel.Application")
+        Set ObjWorkbook = ObjExcel2.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\RuleBook_CV_vf.xlsx")
+        Set ObjDriverSheet = ObjWorkbook.Worksheets(1)  
+        ColumnCount = ObjDriverSheet.Usedrange.Columns.Count
+        Rowcount = ObjDriverSheet.Usedrange.Rows.Count
+       
+        'Dim Objexcel1, ObjWorkbook1, ObjDriverSheet1,ObjDriverSheet2, Fieldvalue1, Rowcount1, Rowcount2    , ColumnCount1      
+        'set Objexcel1 = Createobject("Excel.Application")      
+        'Objexcel1.Visible = True
+        'Set ObjWorkbook1 = ObjExcel1.WorkBooks.Open("D:\Digital Vehicle Layout\DVLO project documentations\QA_APP_TESTING\AUG_PROJECT_DVLO\NEW_DVLO\Book1.xlsx")      
+        'Set ObjWorkbook1 = ObjExcel1.WorkBooks.Open("c:\temp\DVLO_CV.xlsx")    
+        'Set ObjDriverSheet1 = ObjWorkbook1.Worksheets(1)
+        'set ObjDriverSheet2 = ObjWorkbook1.Worksheets("Summary")
+       
+        'dim is_score
+       
+        tableRow = table.rows.length
+        'msgbox tableRow
+        'msgbox "hi3"
+       
+        For n = 1 To (tableRow - 1)
+            'msgbox "hi4"
+            Dim ruleID, usercommentID, usercomment, Status, result, Score, designGroup , actual_clearence, clearance, description,userScore,userID,modules
+            dim get_rul_id, aggregets,common_score
+           
+            get_rul_id = ""
+            common_score = 0
+       
+            ruleID = table.Rows(n).Cells(0).innerHTML
+           
+            modules = table.Rows(n).Cells(1).innerHTML
+           
+            clearance =  table.Rows(n).Cells(2).innerHTML
+           
+            actual_clearence = table.Rows(n).Cells(3).innerHTML
+ 
+            Status = table.Rows(n).Cells(4).innerHTML
+           
+            score = table.Rows(n).Cells(5).innerHTML
+           
+            userID = "userText"&ruleID
+            userScore = document.getElementById(userID).value
+            'msgbox userScore
+           
+            usercommentID = "usercomment"&ruleID
+            usercomment = document.getElementById(usercommentID).value
+           
+           
+            if Not (score = "-" ) then
+           
+                if (CDbl(score) > 0) then
+               
+                    'msgbox ruleID & "-" & modules & "-" & clearance & "-" & actual_clearence & "-" & Status & "-" & score & "-" & userScore & "-" & usercomment
+                   
+                    get_rul_id = ruleID
+                    common_score = score
+               
+                end if
+               
+            else
+           
+                if (CDbl(userScore) > 0) then
+               
+                    'msgbox ruleID & "-" & modules & "-" & clearance & "-" & actual_clearence & "-" & Status & "-" & score & "-" & userScore & "-" & usercomment
+                    get_rul_id = ruleID
+                    common_score = userScore
+               
+                end if
+               
+            end if
+            'msgbox "hi4"
+            if Not (get_rul_id = "") then
+           
+                'msgbox get_rul_id
+               
+                for rr = 2 to Rowcount
+               
+                    if Objdriversheet.Cells(rr,1) = get_rul_id then
+                   
+                        aggregets = Trim(Objdriversheet.Cells(rr,2))
+                       
+                        sep_aggre = Split(aggregets, "||")
+                        main_aggre = Trim(sep_aggre(0))
+                        'msgbox main_aggre
+                       
+                        'msgbox main_aggre & " - " & common_score
+                       
+                        if (main_aggre = "CHASSIS") AND (CDBl(common_score) = 10) then
+                           
+                            chassis_10 = chassis_10+1
+                            call set_demerit(main_aggre, chassis_10,common_score)
+                       
+                        elseif (main_aggre = "CHASSIS") AND (CDBl(common_score) = 20) then
+                       
+                            chassis_20 = chassis_20+1
+                            call set_demerit(main_aggre, chassis_20,common_score)
+                       
+                        elseif (main_aggre = "CHASSIS") AND (CDBl(common_score) = 40) then
+                           
+                            chassis_40 = chassis_40+1
+                            call set_demerit(main_aggre, chassis_40,common_score)
+   
+                        elseif (main_aggre = "CHASSIS") AND (CDBl(common_score) = 100) then
+                       
+                            chassis_100 = chassis_100+1
+                            call set_demerit(main_aggre, chassis_100,common_score)
+                           
+                        elseif (main_aggre = "POWERTRAIN") AND (CDBl(common_score) = 10) then
+                           
+                            powertrain_10 = powertrain_10+1
+                            call set_demerit(main_aggre, powertrain_10,common_score)
+ 
+                        elseif (main_aggre = "POWERTRAIN") AND (CDBl(common_score) = 20) then
+                       
+                            powertrain_20 = powertrain_20+1
+                            call set_demerit(main_aggre, powertrain_20,common_score)
+ 
+                        elseif (main_aggre = "POWERTRAIN") AND (CDBl(common_score) = 40) then
+                           
+                            powertrain_40 = powertrain_40+1
+                            call set_demerit(main_aggre, powertrain_40,common_score)
+ 
+                        elseif (main_aggre = "POWERTRAIN") AND (CDBl(common_score) = 100) then
+                       
+                            powertrain_100 = powertrain_100+1
+                            call set_demerit(main_aggre, powertrain_100,common_score)
+ 
+                        elseif (main_aggre = "EE") AND (CDBl(common_score) = 10) then
+                           
+                            ee_10 = ee_10+1
+                            call set_demerit(main_aggre, ee_10,common_score)
+ 
+                        elseif (main_aggre = "EE") AND (CDBl(common_score) = 20) then
+                       
+                            ee_20 = ee_20+1
+                            call set_demerit(main_aggre, ee_20,common_score)
+ 
+                        elseif (main_aggre = "EE") AND (CDBl(common_score) = 40) then
+                           
+                            ee_40 = ee_40+1
+                            call set_demerit(main_aggre, ee_40,common_score)
+ 
+                        elseif (main_aggre = "EE") AND (CDBl(common_score) = 100) then
+                       
+                            ee_100 = ee_100+1
+                            call set_demerit(main_aggre, ee_100,common_score)
+                        elseif (main_aggre = "CAB") AND (CDBl(common_score) = 10) then
+                           
+                            cab_10 = cab_10+1
+                            call set_demerit(main_aggre, cab_10,common_score)
+ 
+                        elseif (main_aggre = "CAB") AND (CDBl(common_score) = 20) then
+                       
+                            'msgbox main_aggre
+                            cab_20 = cab_20+1
+                            call set_demerit(main_aggre, cab_20,common_score)
+                        elseif (main_aggre = "CAB") AND (CDBl(common_score) = 40) then
+                           
+                            cab_40 = cab_40+1
+                            call set_demerit(main_aggre, cab_40,common_score)
+                        elseif (main_aggre = "CAB") AND (CDBl(common_score) = 100) then
+                       
+                            cab_100 = cab_100+1
+                            call set_demerit(main_aggre, cab_100,common_score)
+                        elseif (main_aggre = "APPLICATION ENGINEERING") AND (CDBl(common_score) = 10) then
+                           
+                            appengine_10 = appengine_10+1
+                            call set_demerit(main_aggre, appengine_10,common_score)
+                        elseif (main_aggre = "APPLICATION ENGINEERING") AND (CDBl(common_score) = 20) then
+                       
+                            appengine_20 = appengine_20+1
+                            call set_demerit(main_aggre, appengine_20,common_score)
+                        elseif (main_aggre = "APPLICATION ENGINEERING") AND (CDBl(common_score) = 40) then
+                           
+                            appengine_40 = appengine_40+1
+                            call set_demerit(main_aggre, appengine_40,common_score)
+                        elseif (main_aggre = "APPLICATION ENGINEERING") AND (CDBl(common_score) = 100) then
+                       
+                            appengine_100 = appengine_100+1
+                            call set_demerit(main_aggre, appengine_100,common_score)
+                        elseif (main_aggre = "VEHICLE") AND (CDBl(common_score) = 10) then
+                           
+                            vehicle_10 = vehicle_10+1
+                            call set_demerit(main_aggre, vehicle_10,common_score)
+                        elseif (main_aggre = "VEHICLE") AND (CDBl(common_score) = 20) then
+                       
+                            vehicle_20 = vehicle_20+1
+                            call set_demerit(main_aggre, vehicle_20,common_score)
+                        elseif (main_aggre = "VEHICLE") AND (CDBl(common_score) = 40) then
+                           
+                            vehicle_40 = vehicle_40+1
+                            call set_demerit(main_aggre, vehicle_40,common_score)
+                        elseif (main_aggre = "VEHICLE") AND (CDBl(common_score) = 100) then
+                       
+                            vehicle_100 = vehicle_100+1
+                            call set_demerit(main_aggre, vehicle_100,common_score)  
+                        else
+                            'msgbox "main_aggre NOT FOUND"          
+                        end if
+                   
+                    end if
+               
+                next
+               
+               
+           
+            end if
+           
+               
+           
+           
+        next
+        'msgbox "hi5"
+        'msgbox chassis_40
+        'msgbox chassis_20
+       
+    end sub
+
+
+
+
+
+
+</script>
+
+
+
+
+<script type="text/javascript"language="JavaScript">
+
+	var passed_rule = 0;
+	var failed_rule = 0;
+	
+	function init()
+	{
+		connect_Vis(); // this is VBScript, won't work in JS, comment or rewrite
+
+		$('#Page2').hide();
+		$('#Rule_Repo_Div').hide();
+		$('#Rule_Repo_Div_manual').hide();
+		$('#Report_div').hide();
+		$('#Report_Download_div').hide();
+		$('#Page3').hide();
+		$('#Page4').hide();
+		$('#Page5').hide();
+		$('#Page6').hide();
+
+		var currentdate = new Date(); 
+		var datetime = currentdate.getFullYear() + "-"
+			+ String(currentdate.getMonth() + 1) + "-" 
+			+ String(currentdate.getDate());
+		var datenowElem = document.getElementById("datenow");
+		if (datenowElem) {
+			datenowElem.innerHTML = datetime;
+		}
+	}
+
+
+
+  	function set_global_var() {
+		
+		var buttonCellRef = null
+		
+	}
+	
+	function clearTable()
+	{
+		$('#rule_table tr').slice(1).remove();
+		$('#rule_table_manual tr').slice(1).remove();
+	}
+	
+	function insertRule(ID,RuleID,subModule,Clerance,tooltip,Exec_type,AggregateDisplay, groupDesign)
+	{
+		$('#Rule_Repo_Div').show();
+		//$('#Rule_Repo_Div_manual').show();
+		var table = document.getElementById("rule_table");
+		var rowCount = table.rows.length;
+		//alert(rowCount)
+		var module = ID+"`"+RuleID+"`"+subModule;
+		//alert(module)
+		var reqClernc = Clerance;
+		
+		var newRow = table.insertRow(rowCount);
+		newRow.style.backgroundColor = "#fbfbf4"
+		
+		
+		newRow.align = "center";
+		newRow.insertCell();
+		newRow.cells(0).innerText = (rowCount);
+		newRow.insertCell();
+		newRow.cells(1).innerText = ID;		
+		newRow.insertCell();
+		newRow.cells(2).innerText = RuleID+"-"+subModule;
+		newRow.cells(2).title = tooltip;
+		newRow.insertCell();
+		newRow.cells(3).innerText = AggregateDisplay;
+		newRow.insertCell();
+		newRow.cells(4).innerText = groupDesign;
+		newRow.insertCell();
+		//newRow.insertCell();
+		newRow.cells(5).innerText = Clerance;
+		<!-- Insert info button -->
+		var infoBtn = newRow.insertCell();
+		
+		
+		
+		infoBtn.innerHTML = "<button type='button' " + "style='padding: 6px 12px; background-color: #5bc0de; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; " + "box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: 0.3s;'" + "onmouseover=\"this.style.backgroundColor='#007bff'; this.style.boxShadow='0 10px 244px rgba(0, 123, 255, 0.7)';\" " + "onmouseout=\"this.style.backgroundColor='#5bc0de'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.2)';\" " + "value='" + module + "' onclick='showinfo(this.value)'>Info</button>";
+
+		
+		//var ButtonCell = newRow.insertCell();
+		
+		//ButtonCell.innerHTML = "<button type='button' " + "id='btn-" + ID + "' " + "style='padding: 6px 12px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; " + "box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: 0.3s;' " + "onmouseover=\"this.style.backgroundColor='#218838'; this.style.boxShadow='0 10px 20px rgba(40, 167, 69, 0.5)';\" " + "onmouseout=\"this.style.backgroundColor='#28a745'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.2)';\" " + "value='" + module + "' onclick='calculateDist(this.value)'>Check</button>";
+
+		
+		
+		if (rowCount === 1) {
+			var execCell = newRow.insertCell();
+			execCell.rowSpan = 1000;
+			execCell.style.verticalAlign = "middle";
+			
+			execCell.innerHTML = "<button type='button' " +
+				"style='padding: 10px 18px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; " +
+				"box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: 0.3s;' " +
+				"onmouseover=\"this.style.backgroundColor='#218838'; this.style.boxShadow='0 10px 20px rgba(40, 167, 69, 0.5)';\" " +
+				"onmouseout=\"this.style.backgroundColor='#28a745'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.2)';\" " +
+				"onclick='executeAllRules()'>Check All</button>";
+		}
+			 		
+		//checkforModule(module);
+		
+		//parts_check(ID);
+		
+	}
+	
+	function insertRule_manual(ID,RuleID,subModule,Clerance,tooltip,Exec_type,AggregateDisplay, groupDesign)
+	{
+		//$('#Rule_Repo_Div').show();
+		$('#Rule_Repo_Div_manual').show();
+		var table = document.getElementById("rule_table_manual");
+        var rowCount = table.rows.length;
+		//alert(rowCount)
+		var module = ID+"`"+RuleID+"`"+subModule;
+		var reqClernc = Clerance;
+		
+		var newRow = table.insertRow(rowCount);
+		newRow.style.backgroundColor = "#fbfbf4"
+		
+		
+		newRow.align = "center";
+		newRow.insertCell();
+		newRow.cells(0).innerText = (rowCount);
+		newRow.insertCell();
+		newRow.cells(1).innerText = ID;		
+		newRow.insertCell();
+		newRow.cells(2).innerText = RuleID+"-"+subModule;
+		newRow.cells(2).title = tooltip;
+		newRow.insertCell();
+		newRow.cells(3).innerText = AggregateDisplay;
+		newRow.insertCell();
+		newRow.cells(4).innerText = groupDesign;
+		newRow.insertCell();
+		//newRow.insertCell();
+		newRow.cells(5).innerText = Clerance;
+		
+		var infoBtn = newRow.insertCell();
+		
+		
+		infoBtn.innerHTML = "<button type='button' " + "style='padding: 6px 12px; background-color: #5bc0de; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; " + "box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: 0.3s;'" + "onmouseover=\"this.style.backgroundColor='#007bff'; this.style.boxShadow='0 10px 24px rgba(0, 123, 255, 0.7)';\" " + "onmouseout=\"this.style.backgroundColor='#5bc0de'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.2)';\" " + "value='" + module + "' onclick='showinfo(this.value)'>Info</button>";
+
+		
+		
+		var ButtonCell = newRow.insertCell();
+			
+		if (Exec_type === "Automatic") {
+		
+			ButtonCell.innerHTML = "<button type='button' id='btn-" + ID + "' width='100' height='auto' value='" + module + "' onclick='calculateDist(this.value)'>Check</button>";
+			ButtonCell.style.backgroundColor = "#D1B000";
+			
+		 
+		} else if (Exec_type === "Manual") {
+		
+			
+			ButtonCell.innerHTML = "<button type='button' " + "id='btn-" + ID + "' " + "style='padding: 6px 12px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; " + "box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: 0.3s;' " + "onmouseover=\"this.style.backgroundColor='#218838'; this.style.boxShadow='0 10px 20px rgba(40, 167, 69, 0.5)';\" " + "onmouseout=\"this.style.backgroundColor='#28a745'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.2)';\" " + "value='" + module + "' onclick='calculateDist(this.value)'>Check</button>";
+			ButtonCell.style.backgroundColor = "silver";
+		}
+		
+		//ButtonCell.innerHTML="<button type='button' id='btn-"+ID+"' Width = '100' Height='auto' value='"+module+"' onclick='calculateDist(this.value)' >Check</Button>";
+				
+		//checkforModule(module);
+		
+	}
+	
+	function findBtn(id, _bool, status, submodule)
+	{	
+		document.getElementById("btn-"+id).disabled  = _bool;
+		if(status == 'Fail')
+		{
+		
+		document.getElementById("btn-"+id).style.backgroundColor = 'red';
+		}
+	}
+	
+	function find_part_btn(id, _bool, status, submodule)
+	{
+		document.getElementById("btn-"+id).disabled  = _bool;
+		if(status == 'Fail')
+		{
+		
+		document.getElementById("btn-"+id).style.backgroundColor = 'yellow';
+		}
+	}
+	
+	function addFooterButton()
+	{
+		var table = document.getElementById("rule_table");  // Get the table
+		var rowCount = table.rows.length;  // Get the number of rows
+		//alert(rowCount)
+		
+		var newRow = table.insertRow(rowCount);  // Insert a new row at the end
+		var newCell = newRow.insertCell(0);  // Create a single cell in the row
+
+		newCell.colSpan = table.rows[0].cells.length;  // Span the full width of the table
+		newCell.align = "center";  // Align the button to center
+
+		
+		newCell.innerHTML = "<div style='width: 100%; display: flex; justify-content: center;'><button type='button' id='execute-all-btn' onclick='executeAllRules()' onmouseover=\"this.style.backgroundColor='#2e8b57'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)'\" onmouseout=\"this.style.backgroundColor='#3cb371'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.2)'\" style='width: 100%; max-width: 1000px; padding: 5px 30px; font-size: 18px; font-weight: bold; color: white; background-color: #3cb371; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); transition: all 0.3s ease; letter-spacing: 1px;'>Execute All</button></div>";
+
+		// Apply some styling to the new row
+		newRow.style.backgroundColor = "#D1B000";  // Same yellow as execution buttons
+		newRow.style.height = "20px";
+	}
+	
+	function addSummary(ID,RClearance, status, tempDist,fScore,interModule, show, is_mannual,rt_name)
+	{
+		//var rt_name = root_nm
+		
+		//alert(is_mannual)
+		
+		$('#Report_div').show();
+		$('#Report_Download_div').show();
+		document.getElementById('Summary_section').style.visibility= "visible"
+		var module = ID;
+		var table = document.getElementById("summary_table");
+        var rowCount = table.rows.length;
+		var newRow = table.insertRow(rowCount);
+		newRow.style.backgroundColor = "#fbfbf4"
+		
+		var modules = interModule.split("-")[0];
+		var subModule = interModule.split("-")[1];
+		var viewname = module+"`"+modules+"`"+subModule;
+		
+		//newRow.style.backgroundColor = "#fcdc95";
+		
+		newRow.align = "center";
+		newRow.insertCell();
+		newRow.cells(0).innerText = ID;
+		newRow.insertCell();
+		newRow.cells(1).innerText = interModule;	
+		newRow.insertCell();
+		newRow.cells(2).innerText = RClearance ;		
+		newRow.insertCell();
+		newRow.cells(3).innerText = tempDist;
+		newRow.insertCell();
+		newRow.cells(4).innerText = status;
+		if(status == "Pass")
+		{
+		newRow.cells(4).style.color = 'green';
+		
+		passed_rule = passed_rule + 1;
+		
+		}
+		else
+		{
+		newRow.cells(4).style.color = 'red';
+		
+		failed_rule = failed_rule + 1;
+		
+		}
+		newRow.insertCell();
+		var Usertext = newRow.insertCell();
+		if(is_mannual)
+		{
+			newRow.cells(5).innerText = "-";
+			var userID = "userText"+ID; 
+			Usertext.innerHTML = "<input type='text' id='"+userID+"' maxlength='4' value="+fScore+" size='4'></input>"
+			//newRow.style.backgroundColor = "silver";  
+		}
+		else
+		{
+			newRow.cells(5).innerText = fScore;
+			var userID = "userText"+ID; 
+			Usertext.innerHTML = "<input type='text' id='"+userID+"' maxlength='4' size='4'/>"
+			//newRow.style.backgroundColor = "#D1B000";
+		
+		}
+		
+		newRow.insertCell();
+		var userID = "usercomment"+ID; 
+		newRow.cells(7).innerHTML = "<input type='text' id='"+userID+"'/>"
+		
+		
+		var radioCell = newRow.insertCell();
+		if(show)
+		{
+			
+			
+			radioCell.innerHTML = "<input type='radio' name='viewSelector' id='radio-" + ID + "' value='" + viewname + "' onclick='showVies(this.value)'> ";
+		}
+		else
+		{
+			radioCell.innerText = "";
+		}
+		
+		if(fScore == 100)
+		{
+			var value = document.getElementById("100Demerit").innerHTML ;
+			
+			var count = Number(value) + 1;
+			document.getElementById("100Demerit").innerHTML = count;
+			var sumValue = 100 * count;
+			
+			document.getElementById("100sum").innerHTML   = sumValue;
+			value = document.getElementById("RulesExe").innerHTML
+			document.getElementById("RulesExe").innerHTML = Number(value) + 1;
+			value = document.getElementById("sumTotal").innerHTML
+			document.getElementById("sumTotal").innerHTML = Number(value) + 100;
+		}
+		if(fScore == 40)
+		{
+			var value = document.getElementById("40Demerit").innerHTML ;
+			
+			var count = Number(value) + 1;
+			document.getElementById("40Demerit").innerHTML = count;
+			var sumValue = 40 * count;
+			
+			document.getElementById("40sum").innerHTML   = sumValue;
+			value = document.getElementById("RulesExe").innerHTML
+			document.getElementById("RulesExe").innerHTML = Number(value) + 1;
+			value = document.getElementById("sumTotal").innerHTML
+			document.getElementById("sumTotal").innerHTML = Number(value) + 40;
+		}
+		if(fScore == 20)
+		{
+			var value = document.getElementById("20Demerit").innerHTML ;
+			
+			var count = Number(value) + 1;
+			document.getElementById("20Demerit").innerHTML = count;
+			var sumValue = 20 * count;
+			
+			document.getElementById("20sum").innerHTML   = sumValue;
+			value = document.getElementById("RulesExe").innerHTML
+			document.getElementById("RulesExe").innerHTML = Number(value) + 1;
+			value = document.getElementById("sumTotal").innerHTML
+			document.getElementById("sumTotal").innerHTML = Number(value) + 20;
+		}
+		if(fScore == 10)
+		{
+			var value = document.getElementById("10Demerit").innerHTML ;
+			
+			var count = Number(value) + 1;
+			document.getElementById("10Demerit").innerHTML = count;
+			var sumValue = 10 * count;
+			
+			document.getElementById("10sum").innerHTML   = sumValue;
+			value = document.getElementById("RulesExe").innerHTML
+			document.getElementById("RulesExe").innerHTML = Number(value) + 1;
+			value = document.getElementById("sumTotal").innerHTML
+			document.getElementById("sumTotal").innerHTML = Number(value) + 10;
+		}
+		
+		var today = new Date();
+        var day = today.getDate();           // Day of the month (1–31)
+        var month = today.getMonth() + 1;    // Month (0–11, so add 1)
+        var year = today.getFullYear();      // Full year (e.g., 2025)
+ 
+        var fulldate = day + "/" + month + "/" + year;
+ 
+        //alert(fulldate);
+    document.getElementById("DateNow").innerHTML = fulldate;
+		document.getElementById("vcName").innerHTML = rt_name;
+		document.getElementById("passed").innerHTML = passed_rule;
+		document.getElementById("failed").innerHTML = failed_rule;
+		
+		
+		//alert("Inside summery");
+		
+	}
+	
+	function openCity(evt, TabName) {
+	
+		var i, tabcontent, tablinks;
+		tabcontent = document.getElementsByClassName("tabcontent");
+		for (i = 0; i < tabcontent.length; i++) {
+			tabcontent[i].style.display = "none";
+		}
+		tablinks = document.getElementsByClassName("tablinks");
+		for (i = 0; i < tablinks.length; i++) {
+			tablinks[i].className = tablinks[i].className.replace(" active", "");
+		}
+		document.getElementById(TabName).style.display = "block";
+		evt.currentTarget.className += " active";
+	}
+	
+	function executeAllRules() {
+	
+		var table = document.getElementById("rule_table"); // Get the table
+			var rowCount = table.rows.length; // Get total rows
+			var tableData = []; // Array to store formatted row data
+
+			// Loop through all rows except the header and footer row
+			for (var i = 1; i < rowCount; i++) {
+				var row = table.rows[i]; // Get row
+
+				var ruleID = row.cells[1].innerText.trim(); // Rule ID
+				var modules = row.cells[2].innerText.trim(); // Modules column (e.g., "F3A01-A1B01")
+
+				// Split modules into two parts based on "-"
+				var moduleParts = modules.split("-");
+				var module1 = moduleParts[0]; // First part (e.g., "F3A01")
+				var module2 = moduleParts[1]; // Second part (e.g., "A1B01")
+
+				// Format and store data
+				var formattedData = ruleID + "`" + module1 + "`" + module2;
+				
+				tableData.push(formattedData);
+			}
+
+		//console.log(tableData); // Log formatted data array
+		
+			tableData.forEach(function (data, index) {
+			
+				//alert(data);
+				calculateDist(data)
+				
+			});
+			
+			demerit_score()
+	}
+	
+	function mannual_semi(ruleID,Interfering_modules,description, RClearance) 
+	{  
+		document.getElementById("P2_rueID").innerHTML = ruleID;
+		document.getElementById("P2_IModules").innerHTML = Interfering_modules;
+		document.getElementById("P2_Description").innerHTML = description;
+		document.getElementById("P2_ExpClearance").innerHTML = RClearance;
+		$('#Page1').hide();
+		$('#Page2').show();
+		$('#Page3').hide();
+	}
+	
+	function CaptureImg()
+	{
+		var ruleID = document.getElementById("P2_rueID").innerHTML 
+		CaptureImg_Mannual(ruleID);
+	}
+	
+	function check_ststus_score()
+	{
+		var allDataAvailable = true;
+		var ID,RClearance, status, tempDist,fScore,InterMod;
+		ID = document.getElementById("P2_rueID").innerHTML;		
+		RClearance = document.getElementById("P2_ExpClearance").innerHTML ;
+		
+		tempDist = document.getElementById("P2_clearance").value;
+	
+		var ReqClearance = parseFloat(RClearance.match(/[\d.]+/)[0]);
+
+
+		var P2_ExpClearance = parseFloat(ReqClearance);
+		var P2_clearance = parseFloat(tempDist);
+	
+		if (P2_clearance >= P2_ExpClearance) {
+	
+			document.getElementById('statu_Pass').checked = "Pass";
+			document.getElementById('D0').checked = "0";
+
+		} else 
+		{
+			
+			document.getElementById('statu_fail').checked = "Fail";
+			fScore = checkScore(tempDist, ReqClearance)
+			
+				if (fScore == 10)
+					document.getElementById('D10').checked = "10";
+					
+				else if (fScore == 20)
+					document.getElementById('D20').checked = "20";
+					
+				else if (fScore == 40)
+					document.getElementById('D40').checked = "40";
+					
+				else 
+					document.getElementById('D100').checked = "100";
+		}
+			
+		
+		
+			
+	}
+	
+	
+	function submit_Mannaul()
+	{
+		var allDataAvailable = true;
+		var ID,RClearance, status, tempDist,fScore,InterMod;
+		ID = document.getElementById("P2_rueID").innerHTML;		
+		RClearance = document.getElementById("P2_ExpClearance").innerHTML ;
+		//RClearance = document.getElementById("P2_ExpClearance").innerHTML + "mm";
+		//RClearance = RClearance.replace("mm","");
+		tempDist = document.getElementById("P2_clearance").value;
+		tempDist = tempDist + " mm";
+		InterMod = document.getElementById("P2_IModules").innerHTML
+		if(document.getElementById('statu_Pass').checked)
+		{
+			status = "Pass"
+		}
+		else if (document.getElementById('statu_fail').checked)
+		{
+			status = "Fail"
+		}
+		else 
+		{
+			allDataAvailable = false;
+			alert ("Please select Status ...!")
+		}
+		if(document.getElementById('D100').checked)
+		{
+			fScore = "100"
+		}
+		else if (document.getElementById('D40').checked)
+		{
+			fScore = "40"
+		}
+		else if (document.getElementById('D20').checked)
+		{
+			fScore = "20"
+		}
+		else if (document.getElementById('D10').checked)
+		{
+			fScore = "10"
+		}
+		else if (document.getElementById('D0').checked)
+		{
+			fScore = "0"
+		}
+		else 
+		{
+			allDataAvailable = false;
+			alert ("Please select demerit score ...!")
+		}
+		
+		CaptureImg();
+		
+		if(allDataAvailable )
+		{
+			addSummary(ID,RClearance, status, tempDist,fScore,InterMod,1,1);
+			$('#Page2').hide();
+			$('#Page1').show();
+		}
+		
+		
+	}
+	
+	function Cancel_mannual() 
+	{  
+		document.getElementById("P2_rueID").innerHTML = "";
+		document.getElementById("P2_IModules").innerHTML = "";
+		document.getElementById("P2_Description").innerHTML = "";
+		document.getElementById("P2_ExpClearance").innerHTML = "";
+		document.getElementById("P2_clearance").value = "";
+		$('#Page2').hide();
+		$('#Page1').show();
+	}
+	
+	function adjustView(rule_dd,interfering_dd,description_dd) 
+	{  
+		document.getElementById("P1_rueID").innerHTML = rule_dd;
+		document.getElementById("P1_IModules").innerHTML = interfering_dd;
+		document.getElementById("P1_Description").innerHTML = description_dd;
+		$('#Page1').hide();
+		$('#Page2').hide();
+		
+		//alert("In module")
+		
+		$('#Page3').show();
+	}
+	
+	
+	function onViewSetDone()
+	{	
+		var ID = document.getElementById("P1_rueID").innerHTML;	
+		//alert ("P2_rueID");
+		CaptureImg_Mannual(ID);
+		$('#Page3').hide();
+		$('#Page1').show();
+	}
+	
+	function onViewSetCancel(){
+	
+		$('#Page1').show();
+		
+	}
+	
+	function show_app_sub(get_list_elem, description, design) {
+	
+		
+		var al_table_id = document.getElementById("Applicable_sub_show");
+		var al_rowCount = al_table_id.rows.length;
+		//var desc_design_dict1 = {};
+		
+		//alert(al_rowCount)
+		
+		var al_newRow = al_table_id.insertRow(al_rowCount);
+		al_newRow.style.backgroundColor = "#fbfbf4"
+		
+		al_newRow.align = "center";
+		al_newRow.insertCell();
+		al_newRow.cells(0).innerText = (al_rowCount);
+		
+		al_newRow.insertCell();
+		al_newRow.cells(1).innerText = get_list_elem;
+
+
+    al_newRow.insertCell();
+		al_newRow.cells(2).innerText = description;
+
+    al_newRow.insertCell();
+		al_newRow.cells(3).innerText = design;
+	
+	}
+	
+	function style_change () {
+	
+		var al_btn = document.getElementById("al_subbb");
+		al_btn.disabled = false;
+		al_btn.style.cursor = "pointer";
+		
+		var ul_btn = document.getElementById("ul_subbb");
+		ul_btn.disabled = false;
+		ul_btn.style.cursor = "pointer";
+
+	
+	}
+	
+	function al_deleteAllTableRows () {
+
+		
+		var al_table = document.getElementById("Applicable_sub_show");
+		
+		//var ul_table = document.getElementById("Unapplicable_sub_show");
+		
+		// Remove all rows except the first (assuming it is the header)
+		while (al_table.rows.length > 1) {
+			al_table.deleteRow(1);
+		}
+		
+		
+		
+	}
+	
+	function ul_deleteAllTableRows () {
+
+		
+		//var al_table = document.getElementById("Applicable_sub_show");
+		
+		var ul_table = document.getElementById("Unapplicable_sub_show");
+		
+		// Remove all rows except the first (assuming it is the header)
+		
+		
+		while (ul_table.rows.length > 1) {
+			ul_table.deleteRow(1);
+		}
+		
+	}
+
+	function hide_other_pages () {
+		
+		$('#Page1').hide();
+		$('#Page2').hide();
+		$('#Page4').show();
+		
+	}
+	
+	function on_al_list_SetCancel () {
+		
+		$('#Page1').show();
+		//$('#Page2').show();
+		$('#Page4').hide();
+		
+	}
+	
+	function hide_all_al_pages () {
+		
+		$('#Page1').hide();
+		$('#Page2').hide();
+		//$('#Page4').hide();
+		$('#Page5').show();
+		
+	}
+	
+	function on_ul_list_SetCancel () {
+	
+		$('#Page1').show();
+		//$('#Page2').show();
+		$('#Page5').hide();
+	
+	}
+	
+	function show_unapp_sub (get_ul_list_elem, description, design) {
+	
+		
+		var ul_table_id = document.getElementById("Unapplicable_sub_show");
+		var ul_rowCount = ul_table_id.rows.length;
+		//var desc_design_dict1 = {};
+		
+		//alert(al_rowCount)
+		
+		var ul_newRow = ul_table_id.insertRow(ul_rowCount);
+		ul_newRow.style.backgroundColor = "#fbfbf4"
+		
+		ul_newRow.align = "center";
+		ul_newRow.insertCell();
+		ul_newRow.cells(0).innerText = (ul_rowCount);
+		
+		ul_newRow.insertCell();
+		ul_newRow.cells(1).innerText = get_ul_list_elem;
+
+    ul_newRow.insertCell();
+		ul_newRow.cells(2).innerText = description;
+
+    ul_newRow.insertCell();
+		ul_newRow.cells(3).innerText = design;
+	
+	}
+	
+	function page_hide_all_al_pages () {
+		
+		$('#Page1').hide();
+		$('#Page2').hide();
+		//$('#Page4').hide();
+		$('#Page6').show();
+		
+	}
+	
+	function page_six_SetCancel () {
+	
+		$('#Page1').show();
+		//$('#Page2').show();
+		$('#Page6').hide();
+	
+	}
+	
+	function set_demerit(aggre,count,score){
+        //alert (aggre)
+        //alert (count)
+        //alert (score)
+        var chassis_sum = 0
+        var VEHICLEsum = 0
+        var ee_sum = 0
+        var POWERTRAIN_sum = 0
+        var cab_sum = 0
+        var app_sum = 0
+        var total
+        if(aggre == "CHASSIS" && score == 10 ){
+            document.getElementById("chassis10").innerHTML = count ;
+            chassis_sum = score * count;
+            document.getElementById("chassissum").innerHTML = chassis_sum ;
+            total = total + chassis_sum
+        }
+           
+        else if(aggre == "CHASSIS" && score == 20 ){
+            document.getElementById("chassis20").innerHTML = count ;
+            chassis_sum = score * count;
+            document.getElementById("chassissum").innerHTML = chassis_sum ;
+            total = total + chassis_sum
+        }
+        else if(aggre == "CHASSIS" && score == 40 ){
+            document.getElementById("chassis40").innerHTML = count ;
+            chassis_sum = score * count;
+            document.getElementById("chassissum").innerHTML = chassis_sum ;
+            total = total + chassis_sum
+        }
+        else if(aggre == "CHASSIS" && score == 100 ){
+            document.getElementById("chassis100").innerHTML = count ;
+            chassis_sum = score * count;
+            document.getElementById("chassissum").innerHTML = chassis_sum ;
+            total = total + chassis_sum
+        }
+        else if(aggre == "POWERTRAIN" && score == 10 ){
+            document.getElementById("POWERTRAIN10").innerHTML = count ;
+            POWERTRAIN_sum = score * count;
+            document.getElementById("POWERTRAINsum").innerHTML = POWERTRAIN_sum ;
+            total = total + POWERTRAIN_sum
+        }
+        else if(aggre == "POWERTRAIN" && score == 20 ){
+            document.getElementById("POWERTRAIN20").innerHTML = count ;
+            POWERTRAIN_sum = score * count;
+            document.getElementById("POWERTRAINsum").innerHTML = POWERTRAIN_sum ;
+            total = total + POWERTRAIN_sum
+        }
+        else if(aggre == "POWERTRAIN" && score == 40 ){
+            document.getElementById("POWERTRAIN40").innerHTML = count ;
+            POWERTRAIN_sum = score * count;
+            document.getElementById("POWERTRAINsum").innerHTML = POWERTRAIN_sum ;
+            total = total + POWERTRAIN_sum
+        }
+        else if(aggre == "POWERTRAIN" && score == 100 ){
+            document.getElementById("POWERTRAIN100").innerHTML = count ;
+            POWERTRAIN_sum = score * count;
+            document.getElementById("POWERTRAINsum").innerHTML = POWERTRAIN_sum ;
+            total = total + POWERTRAIN_sum
+        }
+        else if(aggre == "EE" && score == 10 ){
+            document.getElementById("ee10").innerHTML = count ;
+            ee_sum = score * count;
+            document.getElementById("eesum").innerHTML = ee_sum ;
+            total = total + ee_sum
+        }
+        else if(aggre == "EE" && score == 20 ){
+            document.getElementById("ee20").innerHTML = count ;
+            ee_sum = score * count;
+            document.getElementById("eesum").innerHTML = ee_sum ;
+            total = total + ee_sum
+        }
+        else if(aggre == "EE" && score == 40 ){
+            document.getElementById("ee40").innerHTML = count ;
+            ee_sum = score * count;
+            document.getElementById("eesum").innerHTML = ee_sum ;
+            total = total + ee_sum
+        }
+        else if(aggre == "EE" && score == 100 ){
+            document.getElementById("ee100").innerHTML = count ;
+            ee_sum = score * count;
+            document.getElementById("eesum").innerHTML = ee_sum ;
+            total = total + ee_sum
+        }
+        else if(aggre == "CAB" && score == 10 ){
+            document.getElementById("cab10").innerHTML = count ;
+            cab_sum = score * count;
+            document.getElementById("cabsum").innerHTML = cab_sum ;
+            total = total + cab_sum
+        }
+        else if(aggre == "CAB" && score == 20 ){
+            document.getElementById("cab20").innerHTML = count ;
+            cab_sum = score * count;
+            document.getElementById("cabsum").innerHTML = cab_sum ;
+            total = total + cab_sum
+        }
+        else if(aggre == "CAB" && score == 40 ){
+            document.getElementById("cab40").innerHTML = count ;
+            cab_sum = score * count;
+            document.getElementById("cabsum").innerHTML = cab_sum ;
+            total = total + cab_sum
+        }
+        else if(aggre == "CAB" && score == 100 ){
+            document.getElementById("cab100").innerHTML = count ;
+            cab_sum = score * count;
+            document.getElementById("cabsum").innerHTML = cab_sum ;
+            total = total + cab_sum
+        }
+        else if(aggre == "APPLICATION ENGINEERING" && score == 10 ){
+            document.getElementById("APPLICATION_ENGINEERING10").innerHTML = count ;
+            app_sum = score * count;
+            document.getElementById("ENGINEERINGsum").innerHTML = app_sum ;
+            total = total + app_sum
+        }
+        else if(aggre == "APPLICATION ENGINEERING" && score == 20 ){
+            document.getElementById("APPLICATION_ENGINEERING20").innerHTML = count ;
+            app_sum = score * count;
+            document.getElementById("ENGINEERINGsum").innerHTML = app_sum ;
+            total = total + app_sum
+        }
+        else if(aggre == "APPLICATION ENGINEERING" && score == 40 ){
+            document.getElementById("APPLICATION_ENGINEERING40").innerHTML = count ;
+            app_sum = score * count;
+            document.getElementById("ENGINEERINGsum").innerHTML = app_sum ;
+            total = total + app_sum
+        }
+        else if(aggre == "APPLICATION ENGINEERING" && score == 100 ){
+            document.getElementById("APPLICATION_ENGINEERING100").innerHTML = count ;
+            app_sum = score * count;
+            document.getElementById("ENGINEERINGsum").innerHTML = app_sum ;
+            total = total + app_sum
+        }
+        else if(aggre == "VEHICLE" && score == 10 ){
+            document.getElementById("VEHICLE10").innerHTML = count ;
+            VEHICLE_sum = score * count;
+            document.getElementById("VEHICLEsum").innerHTML = VEHICLE_sum ;
+            total = total + VEHICLE_sum
+        }
+        else if(aggre == "VEHICLE" && score == 20 ){
+            document.getElementById("VEHICLE20").innerHTML = count ;
+            VEHICLE_sum = score * count;
+            document.getElementById("VEHICLEsum").innerHTML = VEHICLE_sum ;
+            total = total + VEHICLE_sum
+        }
+        else if(aggre == "VEHICLE" && score == 40 ){
+            document.getElementById("VEHICLE40").innerHTML = count ;
+            VEHICLE_sum = score * count;
+            document.getElementById("VEHICLEsum").innerHTML = VEHICLE_sum ;
+            total = total + VEHICLE_sum
+        }
+        else if(aggre == "VEHICLE" && score == 100 ){
+            document.getElementById("VEHICLE100").innerHTML = count ;
+            VEHICLE_sum = score * count;
+            document.getElementById("VEHICLEsum").innerHTML = VEHICLE_sum ;
+            total = total + VEHICLE_sum
+        }
+        else{
+            alert ("demerit score not set")
+        }
+ 
+        chassis_sum = document.getElementById("chassissum").innerHTML;
+        POWERTRAIN_sum = document.getElementById("POWERTRAINsum").innerHTML;
+        ee_sum = document.getElementById("eesum").innerHTML;
+        cab_sum = document.getElementById("cabsum").innerHTML;
+        app_sum = document.getElementById("ENGINEERINGsum").innerHTML;
+        VEHICLEsum = document.getElementById("VEHICLEsum").innerHTML;
+         
+        total = Number(chassis_sum) + Number(POWERTRAIN_sum) + Number(ee_sum) + Number(cab_sum) + Number(app_sum) + Number(VEHICLEsum)
+        document.getElementById("total_sum").innerHTML = total ;
+       
+    }
+
+</script>
+
+
+
+
+ <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+<script src ="http://code.jquery.com/jquery-1.11.2.min.js" type="text/javascript"></script>
+</head>
+<body onload="init()" bgcolor="#e7e7e7">
+	<!-- <body> -->
+	<!-- <form name="MainForm"> -->
+	<div id="Page1" style="margin-top: 0">
+		<div style="margin-top: 0">
+			<!-- style="border-style: ridge;" -->
+			<!-- &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;				 -->
+
+			<div style="max-width: 100%; max-height: 100%; padding: 20px; border: 1px solid #ccc; border-radius: 12px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2); background-color: #bababa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+				<table align="center" width="100%">
+
+					<tr>
+						<td align="right" style="font-size: 15px; font-weight: bold; padding-Left:50px; padding-right: 20px;text-shadow: 2px 2px 4px rgba(239, 237, 237, 0.567);
+						" >
+							Validate Submodules :
+						</td>
+
+						<td>
+							<!-- <Button type="button" Width = "1000" Height="auto" onclick="Validate_all_submodules()">Download Report</Button>  -->
+            
+							<Button type="button"
+									onclick="Validate_all_submodules()"
+									style="
+									width: 15 px;
+									max-width: 1000px;
+									height: auto;
+									padding: 10px 20px;
+									background-color: #4CAF50;
+									color: white;
+									font-size: 15px;
+									font-weight: bold;
+									border: none;
+									border-radius: 8px;
+									box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+									cursor: pointer;
+									transition: background-color 0.3s ease, transform 0.2s ease;box-shadow: #5f7d70  2px 2px 4px;
+								"
+									onmouseover="this.style.backgroundColor='#F5DEB3'; this.style.transform='scale(1.02)';"
+									onmouseout="this.style.backgroundColor='#45a049'; this.style.transform='scale(1)';">
+								Validate
+							</Button>
+
+
+						</td>
+
+						<td>
+							
+							<Button type="button"
+									id="al_subbb"
+									onclick="show_all_applicable_submodules()"
+									disabled
+									style="
+										width: 15 px;
+										max-width: 1000px;
+										height: auto;
+										padding: 10px 20px;
+										background-color: #468e4b;
+										color: white;
+										font-size: 15px;
+										font-weight: bold;
+										border: none;
+										border-radius: 8px;
+										box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+										cursor: not-allowed;
+										transition: background-color 0.3s ease, transform 0.2s ease;box-shadow: rgb(90, 150, 89) 2px 2px 4px;
+									"
+									onmouseover="if (!this.disabled) { this.style.backgroundColor='#BFFFF4'; this.style.transform='scale(1.02)'; }"
+									onmouseout="if (!this.disabled) { this.style.backgroundColor='#4CAF50'; this.style.transform='scale(1)'; }">
+								App SubModule
+							</Button>
+
+
+
+						</td>
+
+						<td>
+						
+
+							<Button type="button"
+									id="ul_subbb"
+									onclick="show_all_unapplicable_submodules()"
+									disabled
+									style="
+										width: 15 px;
+										max-width: 1000px;
+										height: auto;
+										padding: 10px 20px;
+										background-color: #823e18;
+										color: white;
+										font-size: 15px;
+										font-weight: bold;
+										border: none;
+										border-radius: 8px;
+										box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+										cursor: not-allowed;
+										transition: background-color 0.3s ease, transform 0.2s ease;box-shadow: #9a6559 2px 2px 4px;
+									"
+									onmouseover="if (!this.disabled) { this.style.backgroundColor='#823e18'; this.style.transform='scale(1.02)'; }"
+									onmouseout="if (!this.disabled) { this.style.backgroundColor='#823e18'; this.style.transform='scale(1)'; }">
+								UN App SubModule
+							</Button>
+
+
+
+						</td>
+
+					</tr>
+
+					<tr>
+					</tr>
+					<tr>
+					</tr>
+					<tr>
+					</tr>
+					<tr>
+					</tr>
+					<tr>
+					</tr>
+					<tr>
+					</tr>
+
+
+					<tr>
+						<td align="right" style="font-size: 15px; font-weight: bold; padding-Left:30px;padding-right: 20px;text-shadow: 2px 2px 4px rgba(239, 237, 237, 0.567);">
+							Module Name :
+						</td>
+						 
+						<td>
+							<!-- <select name="Assembly_no" id="Assembly_no" style="padding: 3px; width: 180px; font-size: 12px;" onchange="check_for_assemblyNo()"> -->
+
+							<select name="Assembly_no" id="Assembly_no" onchange="check_for_assemblyNo()"
+									style="
+									padding: 8px 12px;
+									width: 200px;
+									font-size: 14px;
+									font-family: 'Segoe UI' , Tahoma, Geneva, Verdana, sans-serif;
+									border: 1px solid #ccc;
+									border-radius: 12px;
+									box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+									background-color: #feffff;
+									color: #333;
+									transition: all 0.3s ease;
+									appearance: none;
+									-webkit-appearance: none;
+									-moz-appearance: none;
+									background-image: url('data:image /svg+xml;utf8,<svg fill=\'%23333\' height=\'24\' viewBox=\'0 0 24 24\' width=\'24\' xmlns=\'http://www.w3.org/2000/svg\'><path d=\'M7 10l5 5 5-5z\'/></svg>');
+										background-repeat: no-repeat;
+										background-position: right 10px center;
+										background-size: 18px 18px;
+										cursor: pointer;
+									">
+
+									<option value="Select">Select</option>
+									<option value="FUEL_SYSTEM">FUEL SYSTEM</option>
+									<option value="PROPELLER_SYSTEM">PROPELLER SYSTEM</option>
+									<option value="STEERING_SYSTEM">STEERING SYSTEM</option>
+									<option value="EXHAUST_SYSTEM">EXHAUST SYSTEM</option>
+									<option value="BRAKE_ACTUATION_SYSTEM">BRAKE ACTUATION SYSTEM</option>
+									<option value="SUSPENSION_AXLE_WHEEL_TYRE">SUSPENSION_AXLE_WHEEL_TYRE</option>
+									<option value="WIRING_HARNESS">WIRING HARNESS</option>
+								</select>
+						</td>
+					</tr>
+					<tr/>
+
+					<tr>
+						<td colspan="4" align="center" style="padding-top: 20px;">
+							<div style="display: inline-flex; align-items: center;">
+								<div title="Rules with Automatic excution will have this color" style="width: 50px; height: 25px; background-color: #D1B000; border: 1px solid #7a8517; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 5px; cursor: help;box-shadow: #000000 2px 2px 3px;"></div>
+								Automatic
+							</div>
+							<div style="display: inline-flex; align-items: center; margin-left: 20px;">
+								<div title="Rules with Manual excution will have this color" style="width: 50px; height: 25px; background-color: rgb(106, 106, 106); border: 1px solid #8380808d; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 5px; cursor: help;box-shadow: #000000 2px 2px 3px;"></div>
+								Manual
+							</div>
+							
+						</td>
+					</tr>
+				</table>
+			</div>
+			<!-- &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;				 -->
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+			<div id="Rule_Repo_Div">
+				<table class="table-bordered" style="width: 100%;" bordercolor="000000" border="0" >
+					<tr>
+						<!-- <td style="text-align:Center;background:#428BCA;font-weight:bold;color: #E6F0FA;font-size: 25px;">Rule Repository</td>  -->
+						<td style="vertical-align:top; text-align:Center;background:#50b8e7;font-weight:bold;color: white;font-size: 25px;font-family:'Fantasy'; border-radius: 10px;text-shadow: 2px 2px 4px rgba(28, 27, 27, 0.567);">Rule Repository</td>
+						<!-- background-image: radial-gradient(100% 100% at 100% 0, #0099cc 0, #ccccff 100%); -->
+					</tr>
+				</table>
+				<table class="table table-bordered table-responsive-md table-responsive-lg" id="rule_table" cellpadding="1" border="0px solid black" style="width: 100%;" bgcolor="E6F0FA" >
+					<tr bgcolor="#929292">
+						<td align='center'><Font size="2.5" color="white"><b>Sr No</b></Font></td>
+						<td align='center'><Font size="2.5" color="white"><b>Rule ID</b></Font></td>
+						<td align='center'><Font size="2.5" color="white"><b>Modules</td>
+						<td align='center'><Font size="2.5" color="white"><b>Aggregate Display</b></Font></td>
+						<td align='center'><Font size="2.5" color="white"><b>Design Group</td>
+						<td align='center'><Font size="2.5" color="white"><b>Value</td>
+						<td align='center'><Font size="2.5" color="white"><b>Info</td>
+						<td align='center'><Font size="2.5" color="white"><b>Execute</td>
+					</tr>
+				</table>
+			</div>
+			<div id="Rule_Repo_Div_manual" style="padding-top: 5px;">
+				<table class="table-bordered" style="width: 100%; " bordercolor="000000" border="0">
+					<tr>
+						<td style="vertical-align:top; text-align:Center;background:#50b8e7;font-weight:bold;color: white;font-size: 25px;font-family:'Fantasy'; border-radius: 10px;text-shadow: 2px 2px 4px rgba(28, 27, 27, 0.567); ">Manual Rules</td>
+					</tr>
+				</table>
+				<table class="table table-bordered table-responsive-md table-responsive-lg" id="rule_table_manual" cellpadding="1" border="0px solid black" style="width: 100%;" bgcolor="E6F0FA">
+					<tr bgcolor="#929292">
+						<td align='center'><Font size="2.5" color="white"><b>Sr No</b></Font></td>
+						<td align='center'><Font size="2.5" color="white"><b>Rule ID</b></Font></td>
+						<td align='center'><Font size="2.5" color="white"><b>Modules</td>
+						<td align='center'><Font size="2.5" color="white"><b>Aggregate Display</b></Font></td>
+						<td align='center'><Font size="2.5" color="white"><b>Design Group</td>
+						<td align='center'><Font size="2.5" color="white"><b>Value</td>
+						<td align='center'><Font size="2.5" color="white"><b>Info</td>
+						<td align='center'><Font size="2.5" color="white"><b>Execute</td>
+					</tr>
+				</table>
+			</div>
+		</div>
+		<div style="border-style: ridge;">
+		</div>
+
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+		<!-- <div class="tab" id="Report_div"> -->
+		<!-- <button class="tablinks" onclick="openCity(event, 'Report')" id = "defaultOpen">Report</button> -->
+		<!-- <button class="tablinks" onclick="openCity(event, 'Overall')">Overall DVLO Score</button>		 -->
+		<!-- </div> -->
+
+		<div class="tab" id="Report_div"
+			 style="display: flex; justify-content: flex-start; gap: 20px; margin: 20px 0; padding-left: 20px; border-radius: 8px">
+
+			<button class="tablinks" onclick="openCity(event, 'Report')" id="defaultOpen"
+					onmouseover="this.style.backgroundColor='#CFECEC'"
+					onmouseout="this.style.backgroundColor='#6C757D'"
+					style="background-color: #6C757D; color: white; padding: 12px 23px; border: none; border-radius: 8px;
+					font-size: 16px; font-family: 'Segoe UI', sans-serif; cursor: pointer;
+					border: 2px solid #a6cdd3; border-radius: 8px; font-size: 16px;
+					box-shadow: #202f39 2px 2px 4px; transition: all 0.3s ease;">
+				Executed Rules
+			</button>
+
+			<button class="tablinks" onclick="openCity(event, 'Overall')"
+					onmouseover="this.style.backgroundColor='#CFECEC'"
+					onmouseout="this.style.backgroundColor='#6C757D'"
+					style="background-color: #6C757D; color: white; padding: 12px 2px; border: none; border-radius: 8px;
+					font-size: 16px; font-family: 'Segoe UI', sans-serif; cursor: pointer;
+					border: 2px solid #a6cdd3; border-radius: 8px; font-size: 16px;
+					box-shadow: #202f39 2px 2px 4px; transition: all 0.3s ease;">
+				Overall DVLO Score
+			</button>
+
+		</div>
+
+
+
+
+		<div id="Report" class="tabcontent">
+
+			<div id="Summary_section">
+				<div id="table_div" style="display:block; max-width: 100%;" align="center" bgcolor="#50b8e7" bordercolor="000000">
+					<table width="400px" align="right">
+						<tr>
+						</tr>
+					</table>
+
+
+					<table class="table-bordered"  style="width: 100%; " bordercolor="000000" border="0">
+						<tr>
+							<!-- <td style="text-align:Center;background:#428BCA;font-weight:bold;color: #E6F0FA;font-size: 25px;">Summary</td> -->
+						<td style="vertical-align:top; text-align:Center;background:#50b8e7;font-weight:bold;color: white;font-size: 25px;font-family:'Fantasy'; border-radius: 10px;text-shadow: 2px 2px 4px rgba(28, 27, 27, 0.567);">Summary</td>
+
+						</tr>
+					</table>
+					<table class="table table-bordered table-responsive-md table-responsive-lg" id="summary_table" cellpadding="1" border="0" bordercolor="000000" style="width: 100%;" bgcolor="E6F0FA">
+						<tr bgcolor="#929292">
+							<td align='center'><Font size="2.5" color="white"><b>Rule ID</b></Font></td>
+							<td align='center'><Font size="2.5" color="white"><b>Modules/Interfering Parts</td>
+							<td align='center'><Font size="2.5" color="white"><b>Expected Clearance</b></Font></td>
+							<td align='center'><Font size="2.5" color="white"><b>Actual Clearance</td>
+							<td align='center'><Font size="2.5" color="white"><b>Status</td>
+							<td align='center'><Font size="2.5" color="white"><b>System Demerit Score</td>
+							<td align='center'><Font size="2.5" color="white"><b>User Demerit Score</td>
+							<td align='center'><Font size="2.5" color="white"><b>User Remarks</td>
+							<td align='center'><Font size="2.5" color="white"><b>View</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+		
+		<div id="Overall" class="tabcontent">
+			<div id="DVLOScore_Summary">
+				<div id="table_div" style="display:block; text-align:center; background-color:#C0C0C0; padding: 30px; border-radius: 20px; border: 1px solid #ccc; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 1000px; margin: auto;">
+
+					<!-- VC and Date Info Table -->
+					<table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-family: 'Segoe UI', sans-serif; font-size: 16px;">
+						<tr>
+							<td style="padding: 12px; text-align: right; font-weight: bold; color: #333;">VC Name:</td>
+							<td id="vcName" style="padding: 12px; text-align: left; background-color: #ffffff; border-radius: 8px;">-</td>
+							<td style="padding: 12px; text-align: right; font-weight: bold; color: #333;">Date:</td>
+							<td id="DateNow" style="padding: 12px; text-align: left; background-color: #ffffff; border-radius: 8px;">-</td>
+						</tr>
+						<tr>
+							<td style="padding: 12px; text-align: right; font-weight: bold; color: #333;">Passed Rules:</td>
+							<td id="passed" style="padding: 12px; text-align: left; background-color: #e0ffe0; border-radius: 8px;">0</td>
+							<td style="padding: 12px; text-align: right; font-weight: bold; color: #333;">Failed Rule:</td>
+							<td id="failed" style="padding: 12px; text-align: left; background-color: #ffe0e0; border-radius: 8px;">0</td>
+						</tr>
+					</table>
+
+					<!-- DVLO Score Title -->
+					<div style="background:#50b8e7; color:#E6F0FA; font-size:26px; font-family:'Fantasy'; padding:12px; border-radius: 12px; font-weight: bold; margin-bottom: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.2);">
+						DVLO Score
+					</div>
+					
+					<table id="summary_table" style="width: 100%; border-collapse: collapse; background-color:#ffffff; font-family:'Segoe UI', sans-serif; font-size: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-radius: 10px; overflow: hidden; border: 1px solid #ccc;">
+						<thead>
+							<tr style="background-color:#50b8e7; color:white; border-bottom:1px solid #ddd;">
+								<th style="padding:12px; text-align:center; border-right:1px solid #ddd;">Sr No</th>
+								<th style="padding:12px; text-align:center; border-right:1px solid #ddd;">Issue</th>
+								<th style="padding:12px; text-align:center; border-right:1px solid #ddd;">Count</th>
+								<th style="padding:12px; text-align:center;">Sum</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr style="background-color:#f9f9f9; border-bottom:1px solid #ddd;">
+								<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">1</td>
+								<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">100 Demerit</td>
+								<td id="100Demerit" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+								<td id="100sum" style="padding:10px; text-align:center;">0</td>
+							</tr>
+							<tr style="background-color:#ffffff; border-bottom:1px solid #ddd;">
+								<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">2</td>
+								<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">40 Demerit</td>
+								<td id="40Demerit" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+								<td id="40sum" style="padding:10px; text-align:center;">0</td>
+							</tr>
+							<tr style="background-color:#f9f9f9; border-bottom:1px solid #ddd;">
+								<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">3</td>
+								<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">20 Demerit</td>
+								<td id="20Demerit" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+								<td id="20sum" style="padding:10px; text-align:center;">0</td>
+							</tr>
+							<tr style="background-color:#ffffff; border-bottom:1px solid #ddd;">
+								<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">4</td>
+								<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">10 Demerit</td>
+								<td id="10Demerit" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+								<td id="10sum" style="padding:10px; text-align:center;">0</td>
+							</tr>
+							<tr style="background-color:#d9efff; font-weight: bold;">
+								<td style="padding:10px; text-align:center; border-right:1px solid #ddd;"></td>
+								<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">Total</td>
+								<td id="RulesExe" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+								<td id="sumTotal" style="padding:10px; text-align:center;">0</td>
+							</tr>
+						</tbody>
+					</table>
+
+					
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+						
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+						
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 
+                        <!-- Demerit Score Table -->
+                        <div style="background:#50b8e7; color:#E6F0FA; font-size:26px; font-family:'Fantasy'; padding:12px; border-radius: 12px; font-weight: bold; margin-bottom: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.2);">
+                            Aggregete Demerit Score
+						</div>
+ 
+						<table id="summary_table" style="width: 100%; border-collapse: collapse; background-color:#ffffff; font-family:'Segoe UI', sans-serif; font-size: 15px; margin-top: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-radius: 10px; overflow: hidden; border: 1px solid #ccc;">
+							<thead>
+								<tr style="background-color:#50b8e7; color:white; border-bottom:1px solid #ddd;">
+									<th style="padding:12px; text-align:center; border-right:1px solid #ddd;" rowspan="2">Aggregete Group</th>
+									<th style="padding:12px; text-align:center; border-right:1px solid #ddd;" colspan="4">Demerit score</th>
+									<th style="padding:12px; text-align:center;" rowspan="2">Total</th>
+								</tr>
+								<tr style="background-color:#a9d18e; border-bottom:1px solid #ddd;">
+									<th style="padding:10px; text-align:center; border-right:1px solid #ddd;">10</th>
+									<th style="padding:10px; text-align:center; border-right:1px solid #ddd;">20</th>
+									<th style="padding:10px; text-align:center; border-right:1px solid #ddd;">40</th>
+									<th style="padding:10px; text-align:center;">100</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr style="background-color:#f9f9f9; border-bottom:1px solid #ddd;">
+									<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">Chassis</td>
+									<td id="chassis10" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="chassis20" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="chassis40" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="chassis100" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="chassissum" style="padding:10px; text-align:center;">0</td>
+								</tr>
+								<tr style="background-color:#ffffff; border-bottom:1px solid #ddd;">
+									<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">POWERTRAIN</td>
+									<td id="POWERTRAIN10" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="POWERTRAIN20" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="POWERTRAIN40" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="POWERTRAIN100" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="POWERTRAINsum" style="padding:10px; text-align:center;">0</td>
+								</tr>
+								<tr style="background-color:#f9f9f9; border-bottom:1px solid #ddd;">
+									<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">E & E</td>
+									<td id="ee10" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="ee20" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="ee40" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="ee100" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="eesum" style="padding:10px; text-align:center;">0</td>
+								</tr>
+								<tr style="background-color:#ffffff; border-bottom:1px solid #ddd;">
+									<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">CAB</td>
+									<td id="cab10" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="cab20" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="cab40" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="cab100" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="cabsum" style="padding:10px; text-align:center;">0</td>
+								</tr>
+								<tr style="background-color:#f9f9f9; border-bottom:1px solid #ddd;">
+									<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">APPLICATION ENGINEERING</td>
+									<td id="APPLICATION_ENGINEERING10" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="APPLICATION_ENGINEERING20" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="APPLICATION_ENGINEERING40" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="APPLICATION_ENGINEERING100" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="ENGINEERINGsum" style="padding:10px; text-align:center;">0</td>
+								</tr>
+								<tr style="background-color:#ffffff; border-bottom:1px solid #ddd;">
+									<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">VEHICLE</td>
+									<td id="VEHICLE10" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="VEHICLE20" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="VEHICLE40" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="VEHICLE100" style="padding:10px; text-align:center; border-right:1px solid #ddd;">0</td>
+									<td id="VEHICLEsum" style="padding:10px; text-align:center;">0</td>
+								</tr>
+								<tr style="background-color:#d9efff; color:black; font-weight:bold;">
+									<td style="padding:10px; text-align:center; border-right:1px solid #ddd;">Total Score</td>
+									<td style="padding:10px; text-align:center; border-right:1px solid #ddd;"></td>
+									<td style="padding:10px; text-align:center; border-right:1px solid #ddd;"></td>
+									<td style="padding:10px; text-align:center; border-right:1px solid #ddd;"></td>
+									<td style="padding:10px; text-align:center; border-right:1px solid #ddd;"></td>
+									<td id="total_sum" style="padding:10px; text-align:center;">0</td>
+								</tr>
+							</tbody>
+						</table>
+
+                    <div>
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+					</div>
+
+				</div>
+			</div>
+		</div>
+
+
+
+		<div>
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+			<div id="Report_Download_div" align="center">
+				<!-- <Button type="button" Width = "1000" Height="auto" onclick="reportDownload()">Download Report</Button>				 -->
+				<button type="button" onclick="reportDownload()"
+						onmouseover="this.style.backgroundColor='#0056b3'; this.style.borderColor='#004080'; this.style.transform='scale(1.05)'"
+						onmouseout="this.style.backgroundColor='#007BFF'; this.style.borderColor='#0056b3'; this.style.transform='scale(1)'"
+						style="width: 200px; padding: 8px 16px;
+					background-color: #007BFF; color: white; font-size: 14px;
+					font-family: 'Segoe UI', sans-serif; border: 2px solid #434343;
+					border-radius: 8px; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+					transition: all 0.3s ease;box-shadow: #000000 2px 2px 4px;">
+					Download Report
+				</button>
+
+			</div>
+		</div>
+	</div>
+
+	<div id="Page2">
+
+		<div style="background-color: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 20px; max-width: 900px; margin: auto; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+
+			<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+				<tr>
+					<th style="width: 40%; padding: 12px; background-color: #f1f1f1; text-align: left; border-radius: 6px 0 0 6px;">Rule ID:</th>
+					<td style="padding: 12px;"><h5 id="P2_rueID" style="margin: 0; font-weight: normal;"></h5></td>
+				</tr>
+				<tr>
+					<th style="padding: 12px; background-color: #f1f1f1; text-align: left;">Interfering Modules:</th>
+					<td style="padding: 12px;"><h5 id="P2_IModules" style="margin: 0; font-weight: normal;"></h5></td>
+				</tr>
+				<tr>
+					<th style="padding: 12px; background-color: #f1f1f1; text-align: left;">Rule Description:</th>
+					<td style="padding: 12px;"><h5 id="P2_Description" style="margin: 0; font-weight: normal;"></h5></td>
+				</tr>
+				<tr>
+					<th style="padding: 12px; background-color: #f1f1f1; text-align: left;">Expected Clearance:</th>
+					<td style="padding: 12px;"><h5 id="P2_ExpClearance" style="margin: 0; font-weight: normal;"></h5></td>
+				</tr>
+			</table>
+
+			<table style="width: 100%; border: 1px solid #ccc; border-collapse: collapse; margin-bottom: 20px;">
+				<tr>
+					<th style="width: 40%; padding: 12px; background-color: #f1f1f1; text-align: left;">Actual Clearance:</th>
+					<td style="padding: 12px;">
+						<input type="text" id="P2_clearance" onchange="check_ststus_score()" style="padding: 6px 10px; width: 100px; border: 1px solid #ccc; border-radius: 6px;"> mm
+					</td>
+				</tr>
+				<tr>
+					<th style="padding: 12px; background-color: #f1f1f1; text-align: left;">Rule Status:</th>
+					<td style="padding: 12px;">
+						<label style="margin-right: 15px;"><input type="radio" name="status" id="statu_Pass" value="Pass" style="margin-right: 5px;">Pass</label>
+						<label><input type="radio" name="status" id="statu_fail" value="Fail" style="margin-right: 5px;">Fail</label>
+					</td>
+				</tr>
+				<tr>
+					<th style="padding: 12px; background-color: #f1f1f1; text-align: left;">Demerit Score:</th>
+					<td style="padding: 12px;">
+						<label style="margin-right: 10px;"><input type="radio" name="score" id="D100" value="D100" style="margin-right: 5px;">100</label>
+						<label style="margin-right: 10px;"><input type="radio" name="score" id="D40" value="D40" style="margin-right: 5px;">40</label>
+						<label style="margin-right: 10px;"><input type="radio" name="score" id="D20" value="D20" style="margin-right: 5px;">20</label>
+						<label style="margin-right: 10px;"><input type="radio" name="score" id="D10" value="D10" style="margin-right: 5px;">10</label>
+						<label><input type="radio" name="score" id="D0" value="D0" style="margin-right: 5px;">0</label>
+					</td>
+				</tr>
+			</table>
+
+			<div style="text-align: center;">
+
+				<button type="button" onclick="submit_Mannaul()" onmouseover="this.style.backgroundColor='#AAC406'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)'" onmouseout="this.style.backgroundColor='#28a745'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.2)'" style="padding: 10px 30px; font-size: 16px; font-weight: bold; color: white; background-color: #28a745; border: none; border-radius: 8px; cursor: pointer; margin-right: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); transition: all 0.3s ease; letter-spacing: 1px;">Submit</button>
+				<button type="button" onclick="Cancel_mannual()" onmouseover="this.style.backgroundColor='#800000'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)'" onmouseout="this.style.backgroundColor='#6c757d'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.2)'" style="padding: 10px 30px; font-size: 16px; font-weight: bold; color: white; background-color: #6c757d; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); transition: all 0.3s ease; letter-spacing: 1px;">Cancel</button>
+
+			</div>
+
+		</div>
+
+	</div>
+
+
+	<div id="Page3" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f9f9f9; border-radius: 12px;">
+		<div>
+			<table class="table table-bordered table-responsive-md table-responsive-lg" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; background-color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-radius: 8px;">
+				<tr style="background-color: #e9ecef;">
+					<th style="width:40%; padding: 12px;"></th>
+					<th style="width:60%; padding: 12px;"></th>
+				</tr>
+				<tr>
+					<td align="right" style="padding: 10px; font-weight: bold; color: #333;">Rule ID :</td>
+					<td style="padding: 10px;"><h4 id="P1_rueID" style="margin: 0; color: #007bff;"></h4></td>
+				</tr>
+				<tr style="background-color: #fafafa;">
+					<td align="right" style="padding: 10px; font-weight: bold; color: #333;">Interfering Modules :</td>
+					<td style="padding: 10px;"><h4 id="P1_IModules" style="margin: 0; color: #17a2b8;"></h4></td>
+				</tr>
+				<tr>
+					<td align="right" style="padding: 10px; font-weight: bold; color: #333;">Rule Description :</td>
+					<td style="padding: 10px;"><h4 id="P1_Description" style="margin: 0; color: #6c757d;"></h4></td>
+				</tr>
+			</table>
+
+			<table class="table table-bordered table-responsive-md table-responsive-lg" style="width: 100%; border-collapse: collapse; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-radius: 8px;">
+				<tr>
+					<td align="center" colspan="2" style="padding: 15px;">
+						<h3 style="margin: 0; color: #343a40;">Set view to capture image</h3>
+					</td>
+				</tr>
+			</table>
+
+			<div style="text-align: center; margin-top: 30px;">
+				<button type="button" onclick="onViewSetDone()"
+						style="padding: 12px 28px; background-color: #28a745; color: white;
+							   border: none; border-radius: 8px; cursor: pointer; font-size: 16px;
+							   box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.3s ease;"
+						onmouseover="this.style.backgroundColor='#218838'; this.style.transform='scale(1.05)'"
+						onmouseout="this.style.backgroundColor='#28a745'; this.style.transform='scale(1)'">
+					Done
+				</button>
+
+				<button type="button" onclick="onViewSetCancel()"
+						style="padding: 12px 28px; background-color: #dc3545; color: white;
+							   border: none; border-radius: 8px; cursor: pointer; font-size: 16px;
+							   box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.3s ease; margin-left: 20px;"
+						onmouseover="this.style.backgroundColor='#c82333'; this.style.transform='scale(1.05)'"
+						onmouseout="this.style.backgroundColor='#dc3545'; this.style.transform='scale(1)'">
+					Cancel
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="Page4">
+
+		<table class="table table-bordered table-responsive-md table-responsive-lg" id="Applicable_sub_show" cellpadding="1" border="1" bordercolor="000000" style="width: 100%;" bgcolor="E6F0FA">
+			<tr bgcolor="#767676 ">
+				<td align='center'><Font size="3" color="white"><b>Sr No</b></Font></td>
+				<td align='center'><Font size="3" color="white"><b>Sub Modules</b></Font></td>
+        <td align='center'><Font size="3" color="white"><b>Sub Module Description</b></Font></td>
+        <td align='center'><Font size="3" color="white"><b>Design Group</b></Font></td>
+			</tr>
+		</table>
+
+		<div style="text-align: center; margin-top: 30px;">
+			<button type="button" onclick="on_al_list_SetCancel()"
+					style="padding: 12px 28px; background-color: #dc3545; color: white;
+							   border: none; border-radius: 8px; cursor: pointer; font-size: 16px;
+							   box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.3s ease; margin-left: 20px;"
+					onmouseover="this.style.backgroundColor='#c82333'; this.style.transform='scale(1.05)'"
+					onmouseout="this.style.backgroundColor='#dc3545'; this.style.transform='scale(1)'">
+				Back
+			</button>
+		</div>
+
+
+	</div>
+
+	<div id="Page5">
+
+		<table class="table table-bordered table-responsive-md table-responsive-lg" id="Unapplicable_sub_show" cellpadding="1" border="1" bordercolor="000000" style="width: 100%;" bgcolor="E6F0FA">
+			<tr bgcolor="#767676 ">
+				<td align='center'><Font size="3" color="white"><b>Sr No</b></Font></td>
+				<td align='center'><Font size="3" color="white"><b>Sub Modules</b></Font></td>
+        <td align='center'><Font size="3" color="white"><b>Sub Module Description</b></Font></td>
+        <td align='center'><Font size="3" color="white"><b>Design Group</b></Font></td>
+			</tr>
+		</table>
+
+		<div style="text-align: center; margin-top: 30px;">
+			<button type="button" onclick="on_ul_list_SetCancel()"
+					style="padding: 12px 28px; background-color: #dc3545; color: white;
+							   border: none; border-radius: 8px; cursor: pointer; font-size: 16px;
+							   box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.3s ease; margin-left: 20px;"
+					onmouseover="this.style.backgroundColor='#c82333'; this.style.transform='scale(1.05)'"
+					onmouseout="this.style.backgroundColor='#dc3545'; this.style.transform='scale(1)'">
+				Back
+			</button>
+		</div>
+
+
+	</div>
+
+	<div id="Page6" style="display: flex; justify-content: center; align-items: flex-start; height: 100vh; background-color: #f9f9f9; padding-top: 60px;">
+		<div style="background-color: #ffffff; padding: 30px 40px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); text-align: center; max-width: 500px;">
+
+			<h4 style="font-size: 24px; font-weight: 600; color: #333; margin-bottom: 30px;">
+				All Required Submodules are Available.
+			</h4>
+
+			<button type="button" onclick="page_six_SetCancel()"
+					style="padding: 12px 28px; background-color: #dc3545; color: white;
+						   border: none; border-radius: 8px; cursor: pointer; font-size: 16px;
+						   box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.3s ease;"
+					onmouseover="this.style.backgroundColor='#c82333'; this.style.transform='scale(1.05)'"
+					onmouseout="this.style.backgroundColor='#dc3545'; this.style.transform='scale(1)'">
+				Back
+			</button>
+
+			<!-- padding: 30px 40px; -->
+
+		</div>
+	</div>
+
+
+</body>
+</html>
+
